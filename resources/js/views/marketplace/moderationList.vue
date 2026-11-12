@@ -2,8 +2,8 @@
     <div>
         <div class="pm-page-head">
             <div>
-                <h2>Listing moderation</h2>
-                <p>Every listing is checked here before it appears on the site.</p>
+                <h2>{{ isAll ? 'All listings' : 'Listing moderation' }}</h2>
+                <p>{{ isAll ? 'Every listing on PetMart, whatever its status. Filter, review, feature or delete.' : 'Every listing is checked here before it appears on the site.' }}</p>
             </div>
         </div>
 
@@ -14,7 +14,7 @@
             :empty-title="activeStatus === 'pending' ? 'All caught up' : 'No listings here'"
             :empty-text="activeStatus === 'pending' ? 'There are no listings waiting for review.' : 'Try another tab or search term.'"
         >
-            <template v-slot:page_top>
+            <template v-if="!isAll" v-slot:page_top>
                 <div class="pm-tabs" role="tablist" aria-label="Listing status">
                     <button
                         v-for="tab in tabs"
@@ -28,6 +28,35 @@
                         {{ tab.label }} <span class="pm-count">{{ counts[tab.value] || 0 }}</span>
                     </button>
                 </div>
+            </template>
+
+            <template v-if="isAll" v-slot:filter>
+                <select v-model="activeStatus" class="form-select" aria-label="Status" @change="filterStatus(activeStatus)">
+                    <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }} ({{ counts[opt.value] || 0 }})</option>
+                </select>
+                <select v-model="formFilter.category_id" class="form-select" aria-label="Category" @change="getDataList(1)">
+                    <option value="">All categories</option>
+                    <optgroup v-for="root in categoryOptions" :key="root.id" :label="root.name">
+                        <option :value="root.id">All {{ root.name }}</option>
+                        <option v-for="child in root.children" :key="child.id" :value="child.id">{{ child.name }}</option>
+                    </optgroup>
+                </select>
+                <select v-model="formFilter.listing_type" class="form-select" aria-label="Listing type" @change="getDataList(1)">
+                    <option value="">All types</option>
+                    <option v-for="(label, value) in types" :key="value" :value="value">{{ label }}</option>
+                </select>
+                <select v-model="formFilter.featured" class="form-select" aria-label="Featured" @change="getDataList(1)">
+                    <option value="">Homepage: any</option>
+                    <option value="1">Featured on homepage</option>
+                    <option value="0">Not featured</option>
+                </select>
+                <select v-model="formFilter.sort" class="form-select" aria-label="Sort" @change="getDataList(1)">
+                    <option value="">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="price_high">Price: high to low</option>
+                    <option value="price_low">Price: low to high</option>
+                    <option value="views">Most viewed</option>
+                </select>
             </template>
 
             <template v-slot:data>
@@ -82,6 +111,9 @@
                             >
                                 <i :class="item.is_featured ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
                             </button>
+                            <button v-if="isAll" type="button" class="btn btn-sm btn-light btn-icon text-danger" title="Delete listing" :disabled="busyId === item.id" @click="remove(item)">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -114,49 +146,104 @@
                         </template>
                     </div>
                     <div class="col-lg-5">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <span class="pm-badge" :class="statusTone(selected.status)">{{ statusLabel(selected.status) }}</span>
-                            <span class="fs-5 fw-bold text-dark">{{ money(selected.price, selected.is_free) }}</span>
-                        </div>
-                        <div v-if="selected.rejection_reason" class="alert alert-danger py-2 px-3 small">
-                            <strong>Rejected:</strong> {{ selected.rejection_reason }}
-                        </div>
-
-                        <p class="pm-section-title">Listing</p>
-                        <dl class="pm-dl">
-                            <dt>Type</dt><dd>{{ typeLabel(selected.listing_type) }}</dd>
-                            <dt>Category</dt><dd>{{ categoryName(selected) }}</dd>
-                            <dt v-if="selected.condition">Condition</dt><dd v-if="selected.condition">{{ capitalize(selected.condition) }}</dd>
-                            <dt>Location</dt><dd>{{ selected.location || '—' }}<div v-if="selected.address" class="pm-cell-sub">{{ selected.address }}</div></dd>
-                            <dt>Negotiable</dt><dd>{{ selected.is_negotiable ? 'Yes' : 'No' }}</dd>
-                            <dt>Submitted</dt><dd>{{ dateTime(selected.created_at) }}</dd>
-                            <dt>Views</dt><dd>{{ selected.views }}</dd>
-                        </dl>
-
-                        <p class="pm-section-title">Seller</p>
-                        <div v-if="selected.seller" class="d-flex align-items-center gap-12 mb-2">
-                            <span class="pm-avatar" :class="avatarTone(selected.seller.id)">{{ nameInitials(selected.seller.name) }}</span>
-                            <div class="min-w-0">
-                                <div class="fw-600 text-dark">
-                                    {{ selected.seller.name }}
-                                    <i v-if="selected.seller.is_verified" class="fa-solid fa-circle-check text-success" title="Verified seller"></i>
+                        <div class="ld-side">
+                            <section class="ld-summary">
+                                <div class="d-flex align-items-center justify-content-between gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="pm-badge" :class="statusTone(selected.status)">{{ statusLabel(selected.status) }}</span>
+                                        <span v-if="selected.is_featured" class="pm-badge no-dot is-warning"><i class="fa-solid fa-star"></i> Featured</span>
+                                    </div>
+                                    <span class="ld-id">#{{ selected.id }}</span>
                                 </div>
-                                <div class="pm-cell-sub">{{ selected.seller.phone }}<template v-if="selected.seller.email"> · {{ selected.seller.email }}</template></div>
-                                <div class="pm-cell-sub">Member since {{ dateTime(selected.seller.joined_at, false) }}</div>
-                            </div>
-                        </div>
-                        <span v-if="selected.seller && !selected.seller.status" class="pm-badge is-danger">Account deactivated</span>
+                                <div class="ld-price">{{ money(selected.price, selected.is_free) }}</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="ld-pill"><i class="fa-solid fa-tag"></i> {{ typeLabel(selected.listing_type) }}</span>
+                                    <span v-if="!selected.is_free && selected.price" class="ld-pill">
+                                        <i :class="selected.is_negotiable ? 'fa-solid fa-handshake' : 'fa-solid fa-lock'"></i>
+                                        {{ selected.is_negotiable ? 'Negotiable' : 'Fixed price' }}
+                                    </span>
+                                </div>
+                            </section>
 
-                        <template v-if="selected.history.length">
-                            <p class="pm-section-title">History</p>
-                            <ul class="pm-timeline">
-                                <li v-for="(h, i) in selected.history" :key="i">
-                                    <strong class="text-dark">{{ indexToLabel(h.action) }}</strong>
-                                    <span class="text-muted"> by {{ h.admin || 'admin' }} · {{ timeAgo(h.created_at) }}</span>
-                                    <div v-if="h.reason" class="pm-cell-sub">{{ h.reason }}</div>
-                                </li>
-                            </ul>
-                        </template>
+                            <div v-if="selected.rejection_reason" class="ld-note is-danger">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                <div><strong>Rejection reason</strong>{{ selected.rejection_reason }}</div>
+                            </div>
+                            <div v-if="selected.status === 'sold'" class="ld-note is-info">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <div><strong>Sold</strong>The seller marked this as sold. Sold listings can’t be rejected or taken down.</div>
+                            </div>
+
+                            <section class="ld-card">
+                                <h4 class="ld-card-title">Listing details</h4>
+                                <ul class="ld-facts">
+                                    <li>
+                                        <span class="ld-icon" style="--accent: var(--pm-c-sky)"><i class="fa-solid fa-layer-group"></i></span>
+                                        <span class="ld-label">Category</span>
+                                        <span class="ld-value">{{ categoryName(selected) }}</span>
+                                    </li>
+                                    <li v-if="selected.condition">
+                                        <span class="ld-icon" style="--accent: var(--pm-c-violet)"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                                        <span class="ld-label">Condition</span>
+                                        <span class="ld-value">{{ capitalize(selected.condition) }}</span>
+                                    </li>
+                                    <li>
+                                        <span class="ld-icon" style="--accent: var(--pm-c-rose)"><i class="fa-solid fa-location-dot"></i></span>
+                                        <span class="ld-label">Location</span>
+                                        <span class="ld-value">
+                                            {{ selected.location || '—' }}
+                                            <small v-if="selected.address">{{ selected.address }}</small>
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span class="ld-icon" style="--accent: var(--pm-c-amber)"><i class="fa-regular fa-calendar"></i></span>
+                                        <span class="ld-label">Submitted</span>
+                                        <span class="ld-value">
+                                            {{ dateTime(selected.created_at) }}
+                                            <small>{{ timeAgo(selected.created_at) }}</small>
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span class="ld-icon" style="--accent: var(--pm-c-teal)"><i class="fa-regular fa-eye"></i></span>
+                                        <span class="ld-label">Views</span>
+                                        <span class="ld-value">{{ Number(selected.views || 0).toLocaleString('en-IN') }}</span>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <section v-if="selected.seller" class="ld-card">
+                                <h4 class="ld-card-title">Seller</h4>
+                                <div class="d-flex align-items-center gap-12">
+                                    <span class="pm-avatar is-lg" :class="avatarTone(selected.seller.id)">{{ nameInitials(selected.seller.name) }}</span>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="fw-600 text-dark text-truncate">
+                                            {{ selected.seller.name }}
+                                            <i v-if="selected.seller.is_verified" class="fa-solid fa-circle-check text-success ms-1" title="Verified seller"></i>
+                                        </div>
+                                        <div class="pm-cell-sub">Member since {{ dateTime(selected.seller.joined_at, false) }}</div>
+                                        <span v-if="!selected.seller.status" class="pm-badge is-danger mt-1">Account deactivated</span>
+                                    </div>
+                                </div>
+                                <div class="ld-contact">
+                                    <a :href="`tel:${selected.seller.phone}`" class="btn btn-sm btn-light"><i class="fa-solid fa-phone"></i> {{ selected.seller.phone }}</a>
+                                    <a v-if="selected.seller.email" :href="`mailto:${selected.seller.email}`" class="btn btn-sm btn-light text-truncate"><i class="fa-regular fa-envelope"></i> {{ selected.seller.email }}</a>
+                                </div>
+                            </section>
+
+                            <section v-if="selected.history.length" class="ld-card">
+                                <h4 class="ld-card-title">History</h4>
+                                <ol class="ld-history">
+                                    <li v-for="(h, i) in selected.history" :key="i" :class="`is-${historyTone(h.action)}`">
+                                        <div class="d-flex justify-content-between gap-2">
+                                            <strong>{{ indexToLabel(h.action) }}</strong>
+                                            <time :datetime="h.created_at" :title="dateTime(h.created_at)">{{ timeAgo(h.created_at) }}</time>
+                                        </div>
+                                        <div class="pm-cell-sub">by {{ h.admin || 'a removed admin' }}</div>
+                                        <p v-if="h.reason" class="ld-reason">{{ h.reason }}</p>
+                                    </li>
+                                </ol>
+                            </section>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -202,9 +289,10 @@ export default {
     data() {
         return {
             tableHeading: ['Listing', 'Seller', 'Price', 'Submitted', 'Status', 'Actions'],
-            tabs: [
+            types: TYPES,
+            baseTabs: [
                 { value: 'pending', label: 'Pending' },
-                { value: 'active', label: 'Live' },
+                { value: 'active', label: 'Approved' },
                 { value: 'rejected', label: 'Rejected' },
                 { value: 'sold', label: 'Sold' },
             ],
@@ -223,6 +311,24 @@ export default {
         };
     },
     computed: {
+        isAll() {
+            return this.$route.meta.mode === 'all';
+        },
+        statusOptions() {
+            return [
+                { value: 'active', label: 'Approved' },
+                { value: 'pending', label: 'Pending review' },
+                { value: 'rejected', label: 'Rejected' },
+                { value: 'sold', label: 'Sold' },
+                { value: 'all', label: 'All statuses' },
+            ];
+        },
+        tabs() {
+            return this.isAll ? [{ value: 'all', label: 'All' }, ...this.baseTabs] : this.baseTabs;
+        },
+        categoryOptions() {
+            return (this.dataList && this.dataList.categories) || [];
+        },
         counts() {
             return (this.dataList && this.dataList.counts) || {};
         },
@@ -237,11 +343,24 @@ export default {
             this.getDataList(this.currentPagination || 1);
             this.getConfigurations();
         },
+        remove(item) {
+            this.confirmBox((ok) => {
+                if (!ok) return;
+                this.busyId = item.id;
+                this.adminRequest('delete', `api/v1/admin/moderation/${item.id}`)
+                    .then(() => this.reload())
+                    .catch(() => {})
+                    .finally(() => { this.busyId = null; });
+            }, `Delete “${item.title}”?`, 'The listing disappears from the website and the seller’s dashboard. It is removed for good after 30 days.');
+        },
         typeLabel(t) {
             return TYPES[t] || t;
         },
+        historyTone(action) {
+            return { approved: 'success', rejected: 'danger', taken_down: 'danger', deleted: 'danger', featured: 'warning', unfeatured: 'neutral' }[action] || 'neutral';
+        },
         statusLabel(s) {
-            return { active: 'Live', pending: 'Pending', rejected: 'Rejected', sold: 'Sold', expired: 'Expired' }[s] || s;
+            return { active: 'Approved', pending: 'Pending', rejected: 'Rejected', sold: 'Sold', expired: 'Expired' }[s] || s;
         },
         categoryName(item) {
             if (!item.category) return '—';
@@ -298,7 +417,58 @@ export default {
         },
     },
     mounted() {
-        this.filterStatus('pending');
+        ['category_id', 'listing_type', 'featured', 'sort'].forEach((k) => this.$set(this.formFilter, k, ''));
+        this.filterStatus(this.isAll ? 'active' : 'pending');
     },
 }
 </script>
+
+<style scoped>
+.ld-side { display: flex; flex-direction: column; gap: 12px; }
+.ld-summary {
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
+    border: 1px solid var(--pm-border);
+}
+.ld-id { font-size: 12px; font-weight: 600; color: var(--pm-muted); }
+.ld-price { font-size: 26px; font-weight: 800; color: var(--pm-text); letter-spacing: -0.02em; margin: 10px 0 8px; }
+.ld-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--pm-text-2);
+    background: #fff; border: 1px solid var(--pm-border); border-radius: 999px; padding: 3px 10px;
+}
+.ld-pill i { color: var(--pm-emerald-600); font-size: 11px; }
+.ld-note { display: flex; gap: 10px; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+.ld-note i { margin-top: 3px; }
+.ld-note strong { display: block; }
+.ld-note.is-danger { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+.ld-note.is-info { background: #f0f9ff; color: #075985; border: 1px solid #bae6fd; }
+.ld-card { border: 1px solid var(--pm-border); border-radius: 14px; padding: 14px 16px; background: #fff; }
+.ld-card-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pm-muted); margin: 0 0 12px; }
+.ld-facts { list-style: none; margin: 0; padding: 0; }
+.ld-facts li { display: grid; grid-template-columns: 30px 92px 1fr; align-items: start; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--pm-border); }
+.ld-facts li:first-child { border-top: 0; padding-top: 0; }
+.ld-icon {
+    --accent: var(--pm-c-emerald);
+    width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 12px;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.ld-label { font-size: 13px; color: var(--pm-muted); padding-top: 6px; }
+.ld-value { font-size: 13.5px; font-weight: 600; color: var(--pm-text); padding-top: 5px; word-break: break-word; }
+.ld-value small { display: block; font-weight: 500; font-size: 12px; color: var(--pm-muted); margin-top: 1px; }
+.ld-contact { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ld-contact .btn { max-width: 100%; }
+.ld-history { list-style: none; margin: 0; padding: 0; }
+.ld-history li { position: relative; padding: 0 0 14px 20px; font-size: 13px; }
+.ld-history li:last-child { padding-bottom: 0; }
+.ld-history li::before { content: ''; position: absolute; left: 0; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--pm-c-slate); box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--pm-border); }
+.ld-history li::after { content: ''; position: absolute; left: 4.5px; top: 20px; bottom: 2px; width: 1px; background: var(--pm-border); }
+.ld-history li:last-child::after { display: none; }
+.ld-history li.is-success::before { background: var(--pm-c-emerald); }
+.ld-history li.is-danger::before { background: var(--pm-c-rose); }
+.ld-history li.is-warning::before { background: var(--pm-c-amber); }
+.ld-history strong { color: var(--pm-text); }
+.ld-history time { font-size: 12px; color: var(--pm-muted); white-space: nowrap; }
+.ld-reason { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: #f8fafc; color: var(--pm-text-2); font-size: 12.5px; }
+</style>

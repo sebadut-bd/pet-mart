@@ -25,6 +25,8 @@ import { Checkbox } from '../components/ui/Checkbox';
 import { ImageWithFallback } from '../components/ui/ImageWithFallback';
 import { Skeleton } from '../components/ui/Skeleton';
 import { PhotoUploader } from '../components/ui/PhotoUploader';
+import { LocationSearch } from '../components/ui/LocationSearch';
+import { indexLocations, locationOptionLabel } from '../lib/locations';
 import { scrollToElement, scrollToTop } from '../lib/scroll';
 
 const STEPS = ['Category', 'Details', 'Location', 'Photos', 'Review'];
@@ -106,8 +108,13 @@ export default function CreateListing() {
   const selected = choices.find((c) => String(c.id) === String(data.category_id));
   const attributeDefs = selected?.attributes?.length ? selected.attributes : selected?.parent?.attributes || [];
 
-  const districts = (locations.districts || []).filter((d) => String(d.parent_id) === String(data.division_id));
-  const areas = (locations.areas || []).filter((a) => String(a.parent_id) === String(data.district_id));
+  const locIndex = useMemo(() => indexLocations(locations), [locations]);
+  const districts = locIndex.districtsOf(data.division_id);
+  const areas = locIndex.areasOf(data.district_id);
+  const pickLocation = (loc) => {
+    set(locIndex.selectionFor(loc.id));
+    setErrors((e) => ({ ...e, division_id: undefined, district_id: undefined }));
+  };
   const nameOf = (list, id) => list?.find((x) => String(x.id) === String(id))?.name;
 
   // Only "required" checks on the client. Length/format limits are left to the server (and maxLength on inputs).
@@ -505,13 +512,19 @@ export default function CreateListing() {
           {/* Step 3: location */}
           {step === 2 && (
             <div className="space-y-5">
+              <LocationSearch index={locIndex} onPick={pickLocation} />
+              <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <span className="h-px flex-1 bg-border" />
+                or choose step by step
+                <span className="h-px flex-1 bg-border" />
+              </div>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Select
                   id="division"
                   label="Division"
                   required
                   placeholder="Select division"
-                  options={(locations.divisions || []).map((d) => ({ value: d.id, label: d.name }))}
+                  options={locIndex.divisions.map((d) => ({ value: d.id, label: locationOptionLabel(d) }))}
                   value={data.division_id}
                   onChange={(e) => set({ division_id: e.target.value, district_id: '', area_id: '' })}
                   error={errors.division_id}
@@ -522,7 +535,7 @@ export default function CreateListing() {
                   required={districts.length > 0}
                   placeholder={data.division_id ? 'Select district' : 'Choose a division first'}
                   disabled={!data.division_id || districts.length === 0}
-                  options={districts.map((d) => ({ value: d.id, label: d.name }))}
+                  options={districts.map((d) => ({ value: d.id, label: locationOptionLabel(d) }))}
                   value={data.district_id}
                   onChange={(e) => set({ district_id: e.target.value, area_id: '' })}
                   error={errors.district_id}
@@ -530,9 +543,9 @@ export default function CreateListing() {
                 <Select
                   id="area"
                   label="Area"
-                  placeholder={areas.length ? 'Select area' : 'No areas listed'}
+                  placeholder={areas.length ? 'Select area (optional)' : 'No areas listed – use the landmark field'}
                   disabled={!data.district_id || areas.length === 0}
-                  options={areas.map((a) => ({ value: a.id, label: a.name }))}
+                  options={areas.map((a) => ({ value: a.id, label: locationOptionLabel(a) }))}
                   value={data.area_id}
                   onChange={(e) => set({ area_id: e.target.value })}
                 />

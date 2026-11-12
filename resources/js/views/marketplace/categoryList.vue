@@ -53,7 +53,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="cat-name">Name <span class="req">*</span></label>
-                    <input id="cat-name" v-validate="'required|max:100'" name="name" type="text" v-model="formObject.name" class="form-control" placeholder="e.g. Cats">
+                    <input id="cat-name" v-validate="'required|max:100'" name="name" type="text" v-model="formObject.name" class="form-control" placeholder="e.g. Cats & Kittens">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="cat-parent">Parent</label>
@@ -69,15 +69,15 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="cat-icon">Icon</label>
-                    <input id="cat-icon" name="icon" type="text" v-model="formObject.icon" class="form-control" placeholder="e.g. cat">
+                    <input id="cat-icon" name="icon" type="text" v-model="formObject.icon" class="form-control" placeholder="e.g. cat, dog, fish">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="cat-order">Order</label>
-                    <input id="cat-order" name="sort_order" type="number" min="0" v-model.number="formObject.sort_order" class="form-control">
+                    <input id="cat-order" name="sort_order" type="number" min="0" v-model.number="formObject.sort_order" class="form-control" placeholder="0">
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="cat-desc">Description</label>
-                    <textarea id="cat-desc" name="description" v-model="formObject.description" class="form-control" rows="2" maxlength="1000"></textarea>
+                    <textarea id="cat-desc" name="description" v-model="formObject.description" class="form-control" rows="2" maxlength="1000" placeholder="Short text shown on the category page, e.g. Kittens and adult cats for sale or adoption."></textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label">Image</label>

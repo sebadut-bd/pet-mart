@@ -90,7 +90,7 @@ export default {
             const p = this.$route.path;
             if (p.startsWith('/admin/marketplace')) return 'Marketplace';
             if (/\/admin\/(users|module|role|role_permissions)/.test(p)) return 'Access control';
-            if (p.startsWith('/admin/general_setting')) return 'Settings';
+            if (p.startsWith('/admin/general_setting') || p.startsWith('/admin/locations')) return 'Settings';
             return '';
         },
     },

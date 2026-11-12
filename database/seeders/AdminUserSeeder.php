@@ -17,7 +17,6 @@ class AdminUserSeeder extends Seeder
             ['phone' => '+8801700000000'],
             [
                 'name'     => 'Super Admin',
-                'username' => 'admin',
                 'email'    => 'admin@petmart.com',
                 'password' => Hash::make('password123'),
                 'type'     => 1,
@@ -31,7 +30,6 @@ class AdminUserSeeder extends Seeder
             ['phone' => '+8801711111111'],
             [
                 'name'        => 'Dhaka Pet Breeders',
-                'username'    => 'seller_dhaka',
                 'email'       => 'seller@petmart.com',
                 'password'    => Hash::make('password123'),
                 'type'        => 2,
@@ -46,7 +44,6 @@ class AdminUserSeeder extends Seeder
             ['phone' => '+8801722222222'],
             [
                 'name'        => 'Rahim Ahmed',
-                'username'    => 'buyer_rahim',
                 'email'       => 'buyer@petmart.com',
                 'password'    => Hash::make('password123'),
                 'type'        => 3,

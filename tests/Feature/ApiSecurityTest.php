@@ -122,6 +122,7 @@ class ApiSecurityTest extends TestCase
         $user = $this->makeUser();
         $category = $this->makeCategory();
         $division = Location::where('type', 'division')->first();
+        $district = Location::where('type', 'district')->where('parent_id', $division->id)->first();
         Sanctum::actingAs($user);
 
         $payload = [
@@ -130,6 +131,7 @@ class ApiSecurityTest extends TestCase
             'category_id'  => $category->id,
             'listing_type' => 'sell',
             'division_id'  => $division->id,
+            'district_id'  => $district?->id,
             'images'       => ['../../.env'],
             'attributes'   => ['breed' => 'Siamese', 'hacker' => 'x'],
         ];

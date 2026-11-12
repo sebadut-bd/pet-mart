@@ -59,6 +59,10 @@ class ReportAdminController extends AdminController
 
         $report = ProductReport::with('product')->findOrFail($id);
 
+        if (! empty($data['take_down']) && $report->product?->status === 'sold') {
+            return $this->error('This listing is already sold, so it cannot be taken down. Resolve or dismiss the report instead.');
+        }
+
         DB::transaction(function () use ($report, $request, $data) {
             $report->update(['status' => 'resolved']);
 

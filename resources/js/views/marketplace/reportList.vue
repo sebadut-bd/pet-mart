@@ -34,7 +34,7 @@
                                 <span class="pm-cell-title">{{ report.product.title }}</span>
                                 <span class="pm-cell-sub">
                                     by {{ report.product.seller || 'unknown' }} ·
-                                    <span class="pm-badge" :class="statusTone(report.product.status)" style="font-size: 11px; padding: 0 8px">{{ capitalize(report.product.status) }}</span>
+                                    <span class="pm-badge" :class="statusTone(report.product.status)" style="font-size: 11px; padding: 0 8px">{{ report.product.status === 'active' ? 'Approved' : capitalize(report.product.status) }}</span>
                                 </span>
                             </div>
                         </div>
@@ -57,7 +57,7 @@
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                             </a>
                             <template v-if="report.status === 'pending'">
-                                <button type="button" class="btn btn-sm btn-outline-danger" @click="openTakeDown(report)" :disabled="!report.product || report.product.status === 'deleted'">
+                                <button type="button" class="btn btn-sm btn-outline-danger" @click="openTakeDown(report)" :disabled="!report.product || ['deleted', 'sold'].includes(report.product.status)" :title="report.product && report.product.status === 'sold' ? 'Sold listings cannot be taken down' : 'Hide this listing from the website'">
                                     <i class="fa-solid fa-ban"></i> Take down
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-success" :disabled="busyId === report.id" @click="resolve(report)">

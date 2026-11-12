@@ -13,7 +13,7 @@ class Role extends Model
 
     use HasFactory;
 
-    protected $fillable = ['name', 'display_name'];
+    protected $fillable = ['name', 'display_name', 'status'];
 
     public function validate($input = [])
     {

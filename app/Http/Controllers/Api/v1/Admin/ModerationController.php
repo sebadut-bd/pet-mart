@@ -16,26 +16,67 @@ class ModerationController extends AdminController
     public function index(Request $request): JsonResponse
     {
         $request->validate([
-            'status'  => ['nullable', 'in:' . implode(',', self::STATUSES)],
-            'keyword' => ['nullable', 'string', 'max:100'],
+            'status'       => ['nullable', 'in:all,' . implode(',', self::STATUSES)],
+            'keyword'      => ['nullable', 'string', 'max:100'],
+            'category_id'  => ['nullable', 'integer'],
+            'listing_type' => ['nullable', 'in:sell,adopt,lost,found,stud_service'],
+            'featured'     => ['nullable', 'in:0,1'],
+            'sort'         => ['nullable', 'in:newest,oldest,price_high,price_low,views'],
         ]);
 
         $status = $request->input('status') ?: 'pending';
 
-        $page = Product::where('status', $status)
+        $query = Product::query()
+            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($request->filled('keyword'), function ($q) use ($request) {
                 $term = $this->like($request->keyword);
                 $q->where(fn ($w) => $w->where('title', 'like', $term)
                     ->orWhereHas('user', fn ($u) => $u->where('name', 'like', $term)->orWhere('phone', 'like', $term)));
             })
-            ->with(['category.parent', 'user', 'images', 'attributes', 'division', 'district', 'area', 'moderationLogs.admin:id,name'])
-            ->orderBy('created_at', $status === 'pending' ? 'asc' : 'desc')
-            ->paginate($this->perPage($request));
+            ->when($request->filled('category_id'), function ($q) use ($request) {
+                $ids = \App\Models\Category::where('id', $request->category_id)->orWhere('parent_id', $request->category_id)->pluck('id');
+                $q->whereIn('category_id', $ids);
+            })
+            ->when($request->filled('listing_type'), fn ($q) => $q->where('listing_type', $request->listing_type))
+            ->when($request->filled('featured'), fn ($q) => $q->where('is_featured', (bool) $request->featured))
+            ->with(['category.parent', 'user', 'images', 'attributes', 'division', 'district', 'area', 'moderationLogs.admin:id,name']);
+
+        match ($request->input('sort') ?: ($status === 'pending' ? 'oldest' : 'newest')) {
+            'oldest'     => $query->oldest(),
+            'price_high' => $query->orderByDesc('price'),
+            'price_low'  => $query->orderBy('price'),
+            'views'      => $query->orderByDesc('views'),
+            default      => $query->latest(),
+        };
+
+        $page = $query->paginate($this->perPage($request));
 
         $result = $this->paginated($page, fn (Product $p) => $this->present($p));
-        $result['counts'] = Product::select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status');
+        $counts = Product::select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status');
+        $counts['all'] = $counts->sum();
+        $result['counts'] = $counts;
+        $result['categories'] = \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name')->orderBy('sort_order')->get(['id', 'name']);
 
         return $this->ok($result);
+    }
+
+    /** Soft delete (kept for the audit trail; removed for good by listings:prune after 30 days). */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $product = Product::findOrFail($id);
+
+        DB::transaction(function () use ($product, $request) {
+            AdminModerationLog::create([
+                'product_id' => $product->id,
+                'admin_id'   => $request->user()->id,
+                'action'     => 'deleted',
+                'reason'     => null,
+            ]);
+            $product->update(['is_featured' => false]);
+            $product->delete();
+        });
+
+        return $this->ok(null, 'Listing deleted.');
     }
 
     public function approve(Request $request, int $id): JsonResponse

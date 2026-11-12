@@ -24,11 +24,11 @@
 
         <data-table :table-heading="tableHeading" search-placeholder="Search name, email or phone…" empty-icon="fa-solid fa-user-shield" empty-title="No users found">
             <template v-slot:filter>
-                <select v-model="formFilter.role_id" class="form-select" style="width: auto" aria-label="Role" @change="getDataList(1)">
+                <select v-model="formFilter.role_id" class="form-select" aria-label="Role" @change="getDataList(1)">
                     <option value="">All roles</option>
                     <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.display_name }}</option>
                 </select>
-                <select v-model="formFilter.status" class="form-select" style="width: auto" aria-label="Status" @change="getDataList(1)">
+                <select v-model="formFilter.status" class="form-select" aria-label="Status" @change="getDataList(1)">
                     <option value="">Any status</option>
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
@@ -71,7 +71,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="u-name">Name <span class="req">*</span></label>
-                    <input id="u-name" v-model="form.name" class="form-control" maxlength="100" autocomplete="off" :class="{ 'is-invalid': errors.name }">
+                    <input id="u-name" v-model="form.name" class="form-control" maxlength="100" autocomplete="off" placeholder="e.g. Nusrat Jahan" :class="{ 'is-invalid': errors.name }">
                     <span v-if="errors.name" class="error_message">{{ errors.name }}</span>
                 </div>
                 <div class="col-md-6">
@@ -84,7 +84,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="u-email">Email (sign-in) <span class="req">*</span></label>
-                    <input id="u-email" v-model="form.email" type="email" class="form-control" maxlength="150" autocomplete="off" :class="{ 'is-invalid': errors.email }">
+                    <input id="u-email" v-model="form.email" type="email" class="form-control" maxlength="150" autocomplete="off" placeholder="name@example.com" :class="{ 'is-invalid': errors.email }">
                     <span v-if="errors.email" class="error_message">{{ errors.email }}</span>
                 </div>
                 <div class="col-md-6">
@@ -94,13 +94,13 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="u-pass">{{ editingId ? 'New password' : 'Password' }} <span v-if="!editingId" class="req">*</span></label>
-                    <input id="u-pass" v-model="form.password" type="password" class="form-control" autocomplete="new-password" :class="{ 'is-invalid': errors.password }">
+                    <input id="u-pass" v-model="form.password" type="password" class="form-control" autocomplete="new-password" :placeholder="editingId ? 'Leave blank to keep' : 'At least 8 characters'" :class="{ 'is-invalid': errors.password }">
                     <span v-if="errors.password" class="error_message">{{ errors.password }}</span>
                     <div v-else class="form-text">{{ editingId ? 'Leave blank to keep the current password.' : 'At least 8 characters.' }}</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="u-pass2">Confirm password</label>
-                    <input id="u-pass2" v-model="form.password_confirmation" type="password" class="form-control" autocomplete="new-password">
+                    <input id="u-pass2" v-model="form.password_confirmation" type="password" class="form-control" autocomplete="new-password" placeholder="Type the password again">
                 </div>
                 <div class="col-12">
                     <div class="form-check form-switch">

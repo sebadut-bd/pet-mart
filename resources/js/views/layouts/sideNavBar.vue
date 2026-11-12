@@ -88,6 +88,7 @@ const META = {
     category:        { icon: 'fa-solid fa-layer-group', color: 'var(--pm-c-sky)' },
     user:            { icon: 'fa-solid fa-users', color: 'var(--pm-c-violet)' },
     admin_user:      { icon: 'fa-solid fa-user-gear', color: 'var(--pm-c-sky)' },
+    listing:         { icon: 'fa-solid fa-list', color: 'var(--pm-c-emerald)' },
     report:          { icon: 'fa-solid fa-flag', color: 'var(--pm-c-rose)' },
     contact_message: { icon: 'fa-solid fa-envelope-open-text', color: 'var(--pm-c-teal)' },
     banner:          { icon: 'fa-solid fa-image', color: 'var(--pm-c-pink)' },
@@ -97,6 +98,7 @@ const META = {
     role_permission: { icon: 'fa-solid fa-key', color: 'var(--pm-c-orange)' },
     setting:         { icon: 'fa-solid fa-gear', color: 'var(--pm-c-slate)', section: 'Settings' },
     general_setting: { icon: 'fa-solid fa-sliders', color: 'var(--pm-c-emerald)' },
+    location:        { icon: 'fa-solid fa-map-location-dot', color: 'var(--pm-c-orange)' },
 };
 const FALLBACK_COLORS = ['var(--pm-c-emerald)', 'var(--pm-c-sky)', 'var(--pm-c-violet)', 'var(--pm-c-amber)', 'var(--pm-c-pink)', 'var(--pm-c-teal)'];
 

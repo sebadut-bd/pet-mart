@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('sub_category_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('title');
             $table->string('slug')->unique();
@@ -26,9 +25,9 @@ return new class extends Migration
 
             $table->enum('condition', ['new', 'used'])->nullable();
 
-            $table->unsignedBigInteger('division_id')->nullable()->index();
-            $table->unsignedBigInteger('district_id')->nullable()->index();
-            $table->unsignedBigInteger('area_id')->nullable()->index();
+            $table->foreignId('division_id')->nullable()->constrained('locations')->nullOnDelete();
+            $table->foreignId('district_id')->nullable()->constrained('locations')->nullOnDelete();
+            $table->foreignId('area_id')->nullable()->constrained('locations')->nullOnDelete();
             $table->string('full_address')->nullable();
 
             $table->boolean('is_featured')->default(false);
@@ -44,7 +43,6 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['status', 'listing_type']);
-            $table->index(['division_id', 'district_id', 'area_id']);
         });
     }
 

@@ -26,6 +26,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { PromoBanners } from '../components/layout/PromoBanners';
+import { indexLocations } from '../lib/locations';
 
 function SectionHeader({ title, subtitle, to, linkLabel = 'View all' }) {
   return (
@@ -69,12 +70,13 @@ export default function Home() {
   useDocumentTitle('Buy, sell and adopt pets in Bangladesh');
   const navigate = useNavigate();
   const { categories, locations, loading: catalogLoading } = useCatalog();
+  const locIndex = useMemo(() => indexLocations(locations), [locations]);
   const { settings } = useSiteSettings();
   const [products, setProducts] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [form, setForm] = useState({ search: '', category_slug: '', division_id: '' });
+  const [form, setForm] = useState({ search: '', category_slug: '', location: '' });
 
   useEffect(() => {
     let active = true;
@@ -105,7 +107,14 @@ export default function Home() {
   const onSearch = (e) => {
     e.preventDefault();
     const params = new URLSearchParams();
-    Object.entries(form).forEach(([k, v]) => v && params.set(k, v.trim ? v.trim() : v));
+    if (form.search.trim()) params.set('search', form.search.trim());
+    if (form.category_slug) params.set('category_slug', form.category_slug);
+    if (form.location) {
+      const [level, id] = form.location.split(':');
+      const division = level === 'district' ? locIndex.get(id)?.parent_id : id;
+      if (division) params.set('division_id', division);
+      if (level === 'district') params.set('district_id', id);
+    }
     navigate(`/browse${params.toString() ? `?${params}` : ''}`);
   };
 
@@ -204,20 +213,25 @@ export default function Home() {
             </div>
             <span className="hidden h-7 bg-slate-200 lg:block" aria-hidden="true" />
             <div className="border-t border-slate-100 sm:border-t-0">
-              <label htmlFor="hero-division" className="sr-only">
-                Division
+              <label htmlFor="hero-location" className="sr-only">
+                Location
               </label>
               <select
-                id="hero-division"
-                value={form.division_id}
-                onChange={(e) => setForm({ ...form, division_id: e.target.value })}
+                id="hero-location"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
                 className={`${fieldCls} cursor-pointer`}
               >
                 <option value="">All of Bangladesh</option>
-                {(locations.divisions || []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
+                {locIndex.divisions.map((d) => (
+                  <optgroup key={d.id} label={`${d.name} division`}>
+                    <option value={`division:${d.id}`}>All of {d.name} division</option>
+                    {locIndex.districtsOf(d.id).map((dist) => (
+                      <option key={dist.id} value={`district:${dist.id}`}>
+                        {dist.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

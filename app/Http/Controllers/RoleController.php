@@ -54,9 +54,35 @@ class RoleController extends Controller
         ]);
     }
 
+    public function status(Request $request): JsonResponse
+    {
+        $request->validate(['id' => ['required', 'integer']]);
+        $role = Role::findOrFail($request->id);
+
+        if ($role->id === 1) {
+            return response()->json(['status' => 5000, 'message' => 'The Super Admin role cannot be switched off.'], 422);
+        }
+
+        $role->update(['status' => (int) $role->status === 1 ? 0 : 1]);
+
+        return response()->json([
+            'status'  => 2000,
+            'message' => (int) $role->status === 1 ? 'Role activated.' : 'Role deactivated.',
+            'result'  => $role,
+        ]);
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $role = Role::findOrFail($id);
+
+        if ($role->id === 1) {
+            return response()->json(['status' => 5000, 'message' => 'The Super Admin role cannot be deleted.'], 422);
+        }
+        if (\App\Models\User::where('role_id', $role->id)->exists()) {
+            return response()->json(['status' => 5000, 'message' => 'This role is still given to users. Change their role first.'], 422);
+        }
+
         $role->delete();
 
         return response()->json([

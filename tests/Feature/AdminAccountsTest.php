@@ -105,4 +105,40 @@ class AdminAccountsTest extends TestCase
 
         $this->getJson('/api/v1/admin/dashboard-stats')->assertUnauthorized();
     }
+
+    public function test_role_and_module_status_toggle(): void
+    {
+        $this->signInAdmin();
+        $role = Role::create(['name' => 'tmp_' . Str::random(6), 'display_name' => 'Temp']);
+        $role->status = 1;
+        $role->save();
+
+        $this->postJson('/api/roles/status', ['id' => $role->id])->assertOk()->assertJsonPath('status', 2000);
+        $this->assertSame(0, (int) $role->fresh()->status);
+
+        $this->postJson('/api/roles/status', ['id' => 1])->assertUnprocessable();
+        $this->deleteJson('/api/roles/1')->assertUnprocessable();
+    }
+
+    public function test_all_listings_filter_and_delete(): void
+    {
+        $this->signInAdmin();
+        $seller = $this->makeUser();
+        $category = \App\Models\Category::create(['name' => 'T ' . Str::random(4), 'slug' => 't-' . Str::lower(Str::random(8)), 'status' => true]);
+        $make = fn (string $status) => \App\Models\Product::create([
+            'user_id' => $seller->id, 'category_id' => $category->id, 'title' => 'Item ' . $status,
+            'slug' => 'item-' . Str::lower(Str::random(10)), 'listing_type' => 'sell', 'status' => $status,
+        ]);
+        $live = $make('active');
+        $rejected = $make('rejected');
+
+        $ids = collect($this->getJson("/api/v1/admin/moderation?status=all&category_id={$category->id}")->assertOk()->json('result.data'))->pluck('id');
+        $this->assertEqualsCanonicalizing([$live->id, $rejected->id], $ids->all());
+
+        $ids = collect($this->getJson("/api/v1/admin/moderation?status=rejected&category_id={$category->id}")->json('result.data'))->pluck('id');
+        $this->assertSame([$rejected->id], $ids->all());
+
+        $this->deleteJson("/api/v1/admin/moderation/{$live->id}")->assertOk();
+        $this->assertSoftDeleted('products', ['id' => $live->id]);
+    }
 }

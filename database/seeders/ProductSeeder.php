@@ -17,11 +17,12 @@ class ProductSeeder extends Seeder
         $seller = User::where('phone', '+8801711111111')->first();
         if (!$seller) return;
 
-        $dhakaDivision = Location::where('slug', 'dhaka')->first();
-        $dhakaDistrict = Location::where('slug', 'dhaka-city')->first();
-        $dhanmondiArea = Location::where('slug', 'dhanmondi')->first();
-        $uttaraArea = Location::where('slug', 'uttara')->first() ?? $dhanmondiArea;
-        $gulshanArea = Location::where('slug', 'gulshan')->first() ?? $dhanmondiArea;
+        $dhakaDivision = Location::where('type', 'division')->where('slug', 'dhaka')->first();
+        $dhakaDistrict = Location::where('type', 'district')->where('parent_id', $dhakaDivision?->id)->where('slug', 'dhaka')->first();
+        $area = fn (string $slug) => Location::where('type', 'area')->where('parent_id', $dhakaDistrict?->id)->where('slug', $slug)->first();
+        $dhanmondiArea = $area('dhanmondi');
+        $uttaraArea = $area('uttara');
+        $gulshanArea = $area('gulshan');
 
         $catsCategory = Category::where('slug', 'cats')->first();
         $dogsCategory = Category::where('slug', 'dogs')->first();

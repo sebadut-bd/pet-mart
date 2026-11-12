@@ -18,8 +18,9 @@ import { SortSelect } from '../components/filters/SortSelect';
 import { ActiveFilterChips } from '../components/filters/ActiveFilterChips';
 import { LISTING_TYPE_MAP, PER_PAGE } from '../lib/constants';
 import { scrollToTop } from '../lib/scroll';
+import { indexLocations } from '../lib/locations';
 
-const FILTER_KEYS = ['category_slug', 'listing_type', 'division_id', 'min_price', 'max_price'];
+const FILTER_KEYS = ['category_slug', 'listing_type', 'division_id', 'district_id', 'area_id', 'min_price', 'max_price'];
 const VIEW_KEY = 'petmart_browse_view';
 
 function readView() {
@@ -144,16 +145,23 @@ export default function CategoryBrowse() {
         label: LISTING_TYPE_MAP[values.listing_type]?.label || values.listing_type,
         clear: { listing_type: '' },
       });
+    const locIndex = indexLocations(locations);
+    if (values.area_id) {
+      list.push({ key: 'area', label: locIndex.get(values.area_id)?.name || 'Area', clear: { area_id: '' } });
+    }
+    if (values.district_id) {
+      list.push({ key: 'dist', label: locIndex.get(values.district_id)?.name || 'District', clear: { district_id: '', area_id: '' } });
+    }
     if (values.division_id) {
-      const d = locations.divisions?.find((x) => String(x.id) === values.division_id);
-      list.push({ key: 'div', label: d?.name || 'Division', clear: { division_id: '' } });
+      const d = locIndex.get(values.division_id);
+      list.push({ key: 'div', label: d ? `${d.name} division` : 'Division', clear: { division_id: '', district_id: '', area_id: '' } });
     }
     if (values.min_price || values.max_price) {
       const label = `৳ ${values.min_price || '0'} – ${values.max_price ? `৳ ${values.max_price}` : 'any'}`;
       list.push({ key: 'price', label, clear: { min_price: '', max_price: '' } });
     }
     return list;
-  }, [values, activeCategory, locations.divisions]);
+  }, [values, activeCategory, locations]);
 
   const filterCount = chips.filter((c) => c.key !== 'search').length;
   const total = meta?.total ?? products.length;
@@ -236,7 +244,7 @@ export default function CategoryBrowse() {
                 values={values}
                 onChange={updateParams}
                 categories={categories}
-                divisions={locations.divisions || []}
+                locations={locations}
               />
             </div>
           </aside>
@@ -305,7 +313,7 @@ export default function CategoryBrowse() {
                 <EmptyState
                   icon={SearchX}
                   title="No listings match your filters"
-                  description="Try a different keyword, widen the price range or choose another division."
+                  description="Try a different keyword, widen the price range or choose another location."
                   action={chips.length ? clearAll : undefined}
                   actionLabel={chips.length ? 'Clear filters' : 'Post a listing'}
                   actionTo={chips.length ? undefined : '/create-listing'}
@@ -340,7 +348,7 @@ export default function CategoryBrowse() {
           values={draft}
           onChange={(partial) => setDraft((d) => ({ ...d, ...partial }))}
           categories={categories}
-          divisions={locations.divisions || []}
+          locations={locations}
         />
       </FilterDrawer>
     </div>

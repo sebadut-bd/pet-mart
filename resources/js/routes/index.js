@@ -6,6 +6,7 @@ import moduleList from "../views/rbac/moduleList";
 import roleList from "../views/rbac/roleList";
 import rolePermissions from "../views/rbac/rolePermissions";
 import generalSettingForm from "../views/componentConfigure/generalSettingForm";
+import locationList from "../views/settings/locationList";
 import categoryList from "../views/marketplace/categoryList";
 import moderationList from "../views/marketplace/moderationList";
 import memberList from "../views/marketplace/memberList";
@@ -24,6 +25,7 @@ const routes = [
             { path: "profile", name: "profile", component: profile, meta: { pageTitle: "My profile" } },
 
             { path: "marketplace/moderation", name: "marketplace_moderation", component: moderationList, meta: { dataUrl: "api/v1/admin/moderation", pageTitle: "Listing moderation" } },
+            { path: "marketplace/listings", name: "marketplace_listings", component: moderationList, meta: { dataUrl: "api/v1/admin/moderation", pageTitle: "All listings", mode: "all" } },
             { path: "marketplace/reports", name: "marketplace_reports", component: reportList, meta: { dataUrl: "api/v1/admin/reports", pageTitle: "Listing reports" } },
             { path: "marketplace/messages", name: "marketplace_messages", component: contactMessageList, meta: { dataUrl: "api/v1/admin/contact-messages", pageTitle: "Contact messages" } },
             { path: "marketplace/members", name: "marketplace_members", component: memberList, meta: { dataUrl: "api/v1/admin/members", pageTitle: "Members" } },
@@ -35,6 +37,7 @@ const routes = [
             { path: "role", name: "role", component: roleList, meta: { dataUrl: "api/roles", pageTitle: "Roles" } },
             { path: "role_permissions", name: "role_permissions", component: rolePermissions, meta: { dataUrl: "api/role_permissions", pageTitle: "Role permissions" } },
             { path: "module", name: "module", component: moduleList, meta: { dataUrl: "api/modules", pageTitle: "Modules" } },
+            { path: "locations", name: "locations", component: locationList, meta: { pageTitle: "Locations" } },
             { path: "general_setting", name: "general_setting", component: generalSettingForm, meta: { dataUrl: "api/general_setting", pageTitle: "General settings" } },
 
             { path: "404", name: "404", component: pageNotFound, meta: { pageTitle: "Page not found" } },

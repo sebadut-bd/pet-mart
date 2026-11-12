@@ -564,11 +564,18 @@ a {
     p { margin: 0; color: var(--pm-muted); font-size: 13.5px; }
 }
 
+.pm-page-head > div:first-child {
+    flex: 1 1 360px;
+    min-width: 0;
+}
+
 .pm-page-actions {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
 }
 
 /* ===================================================================
@@ -999,6 +1006,45 @@ a {
     }
     &::placeholder { color: #94a3b8; }
     &.is-invalid { border-color: #e11d48; box-shadow: none; }
+}
+
+.form-select {
+    padding-right: 2.4rem;
+    background-position: right 0.85rem center;
+    background-size: 12px 10px;
+    cursor: pointer;
+    text-overflow: ellipsis;
+}
+
+.form-select-sm {
+    padding-right: 2rem;
+    background-position: right 0.6rem center;
+}
+
+.pm-toolbar .form-select {
+    width: auto;
+    min-width: 150px;
+    max-width: 220px;
+    flex: 0 1 auto;
+}
+
+.form-check.form-switch {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding-left: 0;
+    min-height: auto;
+
+    .form-check-input {
+        float: none;
+        margin: 0.15em 0 0;
+        flex-shrink: 0;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        line-height: 1.45;
+    }
 }
 
 .form-text { font-size: 12px; color: var(--pm-muted); }

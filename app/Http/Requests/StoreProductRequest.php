@@ -108,7 +108,11 @@ class StoreProductRequest extends FormRequest
             return;
         }
 
-        if ($this->district_id && ! Location::where('id', $this->district_id)->where('parent_id', $this->division_id)->exists()) {
+        if (! $this->district_id) {
+            if (Location::active()->where('type', 'district')->where('parent_id', $this->division_id)->exists()) {
+                $v->errors()->add('district_id', 'District is required.');
+            }
+        } elseif (! Location::where('id', $this->district_id)->where('parent_id', $this->division_id)->exists()) {
             $v->errors()->add('district_id', 'The district is not in the selected division.');
         }
         if ($this->area_id) {

@@ -123,7 +123,7 @@
                                         </div>
                                     </td>
                                     <td class="fw-600 text-nowrap">{{ money(item.price, item.is_free) }}</td>
-                                    <td><span class="pm-badge" :class="statusTone(item.status)">{{ capitalize(item.status) }}</span></td>
+                                    <td><span class="pm-badge" :class="statusTone(item.status)">{{ statusLabel(item.status) }}</span></td>
                                     <td class="text-end text-muted text-nowrap">{{ timeAgo(item.created_at) }}</td>
                                 </tr>
                             </tbody>
@@ -163,7 +163,7 @@ export default {
             const c = this.cards;
             return [
                 { label: 'Pending review', value: c.pending_approvals || 0, icon: 'fa-solid fa-hourglass-half', color: 'var(--pm-c-amber)', hint: 'Listings waiting for a moderator', to: '/admin/marketplace/moderation' },
-                { label: 'Live listings', value: c.active_listings || 0, icon: 'fa-solid fa-circle-check', color: 'var(--pm-c-emerald)', hint: `${c.sold_listings || 0} sold so far` },
+                { label: 'Approved listings', value: c.active_listings || 0, icon: 'fa-solid fa-circle-check', color: 'var(--pm-c-emerald)', hint: `${c.sold_listings || 0} sold so far` },
                 { label: 'Members', value: c.total_users || 0, icon: 'fa-solid fa-users', color: 'var(--pm-c-violet)', hint: `+${c.new_users_week || 0} this week · ${c.verified_sellers || 0} verified`, to: '/admin/marketplace/members' },
                 { label: 'Needs attention', value: (c.pending_reports || 0) + (c.new_messages || 0), icon: 'fa-solid fa-flag', color: 'var(--pm-c-rose)', hint: `${c.pending_reports || 0} reports · ${c.new_messages || 0} messages`, to: '/admin/marketplace/reports' },
             ];
@@ -220,6 +220,9 @@ export default {
                 .finally(() => {
                     this.loading = false;
                 });
+        },
+        statusLabel(s) {
+            return { active: 'Approved', pending: 'Pending', rejected: 'Rejected', sold: 'Sold', expired: 'Expired' }[s] || this.capitalize(s);
         },
         categoryPercent(i) {
             const series = (this.stats.category_chart && this.stats.category_chart.series) || [];

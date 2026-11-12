@@ -24,12 +24,12 @@
 
         <data-table :table-heading="tableHeading" search-placeholder="Search name, phone or email…" empty-icon="fa-solid fa-user" empty-title="No members found">
             <template v-slot:filter>
-                <select v-model="formFilter.status" class="form-select" style="width: auto" aria-label="Status" @change="getDataList(1)">
+                <select v-model="formFilter.status" class="form-select" aria-label="Status" @change="getDataList(1)">
                     <option value="">Any status</option>
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                 </select>
-                <select v-model="formFilter.is_verified" class="form-select" style="width: auto" aria-label="Seller badge" @change="getDataList(1)">
+                <select v-model="formFilter.is_verified" class="form-select" aria-label="Seller badge" @change="getDataList(1)">
                     <option value="">Any badge</option>
                     <option value="1">Verified</option>
                     <option value="0">Not verified</option>
@@ -81,7 +81,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="m-name">Name <span class="req">*</span></label>
-                    <input id="m-name" v-model="form.name" class="form-control" maxlength="100" :class="{ 'is-invalid': errors.name }">
+                    <input id="m-name" v-model="form.name" class="form-control" maxlength="100" placeholder="Full name" :class="{ 'is-invalid': errors.name }">
                     <span v-if="errors.name" class="error_message">{{ errors.name }}</span>
                 </div>
                 <div class="col-md-6">
@@ -91,7 +91,7 @@
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="m-email">Email</label>
-                    <input id="m-email" v-model="form.email" type="email" class="form-control" maxlength="150" :class="{ 'is-invalid': errors.email }">
+                    <input id="m-email" v-model="form.email" type="email" class="form-control" maxlength="150" placeholder="name@example.com (optional)" :class="{ 'is-invalid': errors.email }">
                     <span v-if="errors.email" class="error_message">{{ errors.email }}</span>
                 </div>
                 <div class="col-md-6">

@@ -2,24 +2,14 @@
 
 namespace App\Providers;
 
-use App\Registers\ResourceRegister;
+use App\Services\Sms\LogSmsSender;
+use App\Services\Sms\SmsSender;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
-        $this->app->bind(\App\Services\Sms\SmsSender::class, \App\Services\Sms\LogSmsSender::class);
-    }
-
-    public function boot()
-    {
-        Paginator::useBootstrap();
-        $registrar = new ResourceRegister($this->app['router']);
-
-        $this->app->bind('Illuminate\Routing\ResourceRegistrar', function () use ($registrar) {
-            return $registrar;
-        });
+        $this->app->bind(SmsSender::class, LogSmsSender::class);
     }
 }

@@ -11,15 +11,13 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100);
-            $table->string('username', 100)->nullable()->unique();
             $table->string('email', 150)->nullable()->unique();
-            $table->string('phone', 20)->unique()->index();
+            $table->string('phone', 20)->unique();
             $table->timestamp('phone_verified_at')->nullable();
-            $table->string('otp_code', 10)->nullable();
+            $table->string('otp_code')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
             $table->string('password');
             $table->unsignedBigInteger('role_id')->nullable()->index();
-            // 1=Admin, 2=Seller (pet owner), 3=Buyer
             $table->tinyInteger('type')->default(2)->comment('1=Admin,2=Seller,3=Buyer');
             $table->string('image')->nullable();
             $table->text('bio')->nullable();
@@ -32,6 +30,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('phone');
+
         });
     }
 

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LISTING_TYPES } from '../../lib/constants';
+import { indexLocations, locationOptionLabel } from '../../lib/locations';
+import { LocationSearch } from '../ui/LocationSearch';
 
-/**
- * Controlled filter form. `values` holds string values keyed by URL param name.
- * `onChange(partial)` is called with the changed keys.
- * Price inputs are committed on blur / Enter so typing does not trigger a fetch per key.
- */
-export function FilterPanel({ values, onChange, categories = [], divisions = [], idPrefix = 'f' }) {
+export function FilterPanel({ values, onChange, categories = [], locations, idPrefix = 'f' }) {
+  const loc = useMemo(() => indexLocations(locations), [locations]);
+  const districts = loc.districtsOf(values.division_id);
+  const areas = loc.areasOf(values.district_id);
   const [minPrice, setMinPrice] = useState(values.min_price || '');
   const [maxPrice, setMaxPrice] = useState(values.max_price || '');
 
@@ -83,24 +83,68 @@ export function FilterPanel({ values, onChange, categories = [], divisions = [],
         </div>
       </fieldset>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${idPrefix}-division`} className="text-sm font-semibold text-navy">
-          Division
-        </label>
-        <select
-          id={`${idPrefix}-division`}
-          value={values.division_id || ''}
-          onChange={(e) => onChange({ division_id: e.target.value })}
-          className={selectCls}
-        >
-          <option value="">All of Bangladesh</option>
-          {divisions.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <fieldset className="space-y-3">
+        <legend className="mb-2 text-sm font-semibold text-navy">Location</legend>
+        <LocationSearch
+          id={`${idPrefix}-loc-search`}
+          index={loc}
+          label="Search area or district"
+          placeholder="e.g. Uttara, Gazipur"
+          onPick={(l) => onChange(loc.selectionFor(l.id))}
+        />
+        <div>
+          <label htmlFor={`${idPrefix}-division`} className="sr-only">Division</label>
+          <select
+            id={`${idPrefix}-division`}
+            value={values.division_id || ''}
+            onChange={(e) => onChange({ division_id: e.target.value, district_id: '', area_id: '' })}
+            className={selectCls}
+          >
+            <option value="">All of Bangladesh</option>
+            {loc.divisions.map((d) => (
+              <option key={d.id} value={d.id}>
+                {locationOptionLabel(d)} division
+              </option>
+            ))}
+          </select>
+        </div>
+        {districts.length > 0 && (
+          <div>
+            <label htmlFor={`${idPrefix}-district`} className="sr-only">District</label>
+            <select
+              id={`${idPrefix}-district`}
+              value={values.district_id || ''}
+              onChange={(e) => onChange({ district_id: e.target.value, area_id: '' })}
+              className={selectCls}
+            >
+              <option value="">All districts</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {locationOptionLabel(d)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {areas.length > 0 && (
+          <div>
+            <label htmlFor={`${idPrefix}-area`} className="sr-only">Area</label>
+            <select
+              id={`${idPrefix}-area`}
+              value={values.area_id || ''}
+              onChange={(e) => onChange({ area_id: e.target.value })}
+              className={selectCls}
+            >
+              <option value="">All areas</option>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {locationOptionLabel(a)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </fieldset>
 
       <fieldset>
         <legend className="mb-2 text-sm font-semibold text-navy">Price (৳)</legend>

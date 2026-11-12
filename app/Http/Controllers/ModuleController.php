@@ -84,6 +84,19 @@ class ModuleController extends Controller
         ]);
     }
 
+    public function status(Request $request): JsonResponse
+    {
+        $request->validate(['id' => ['required', 'integer']]);
+        $module = Module::findOrFail($request->id);
+        $module->update(['status' => (int) $module->status === 1 ? 0 : 1]);
+
+        return response()->json([
+            'status'  => 2000,
+            'message' => (int) $module->status === 1 ? 'Module shown in the menu.' : 'Module hidden from the menu.',
+            'result'  => $module,
+        ]);
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $module = Module::findOrFail($id);

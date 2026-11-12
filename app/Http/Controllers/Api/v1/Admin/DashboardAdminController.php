@@ -46,7 +46,7 @@ class DashboardAdminController extends AdminController
                 'inquiries_week'    => Inquiry::where('created_at', '>=', now()->subDays(7))->count(),
             ],
             'status_chart'   => [
-                'labels' => ['Live', 'Pending', 'Sold', 'Rejected'],
+                'labels' => ['Approved', 'Pending', 'Sold', 'Rejected'],
                 'series' => [
                     (int) ($byStatus['active'] ?? 0),
                     (int) ($byStatus['pending'] ?? 0),

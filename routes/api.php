@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\v1\Admin\BannerAdminController;
 use App\Http\Controllers\Api\v1\Admin\CategoryAdminController;
 use App\Http\Controllers\Api\v1\Admin\ContactMessageAdminController;
 use App\Http\Controllers\Api\v1\Admin\DashboardAdminController;
+use App\Http\Controllers\Api\v1\Admin\LocationAdminController;
 use App\Http\Controllers\Api\v1\Admin\ModerationController;
 use App\Http\Controllers\Api\v1\Admin\ReportAdminController;
 use App\Http\Controllers\Api\v1\Admin\UploadAdminController;
@@ -36,6 +37,8 @@ Route::middleware(['web', 'admin'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'getProfile']);
     Route::post('/profile', [ProfileController::class, 'updateProfile'])->middleware('throttle:10,1');
 
+    Route::post('/modules/status', [ModuleController::class, 'status']);
+    Route::post('/roles/status', [RoleController::class, 'status']);
     Route::apiResource('/modules', ModuleController::class);
     Route::apiResource('/roles', RoleController::class);
     Route::apiResource('/role_permissions', RolePermissionController::class);
@@ -58,6 +61,7 @@ Route::middleware(['web', 'admin'])->group(function () {
         Route::post('/moderation/{id}/approve', [ModerationController::class, 'approve'])->whereNumber('id');
         Route::post('/moderation/{id}/reject', [ModerationController::class, 'reject'])->whereNumber('id');
         Route::post('/moderation/{id}/feature', [ModerationController::class, 'toggleFeatured'])->whereNumber('id');
+        Route::delete('/moderation/{id}', [ModerationController::class, 'destroy'])->whereNumber('id');
 
         Route::get('/categories', [CategoryAdminController::class, 'index']);
         Route::post('/categories', [CategoryAdminController::class, 'store']);
@@ -87,6 +91,12 @@ Route::middleware(['web', 'admin'])->group(function () {
         Route::post('/banners', [BannerAdminController::class, 'store']);
         Route::put('/banners/{id}', [BannerAdminController::class, 'update'])->whereNumber('id');
         Route::delete('/banners/{id}', [BannerAdminController::class, 'destroy'])->whereNumber('id');
+
+        Route::get('/locations', [LocationAdminController::class, 'index']);
+        Route::post('/locations', [LocationAdminController::class, 'store']);
+        Route::put('/locations/{id}', [LocationAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/locations/{id}', [LocationAdminController::class, 'destroy'])->whereNumber('id');
+        Route::post('/locations/{id}/toggle-status', [LocationAdminController::class, 'toggleStatus'])->whereNumber('id');
 
         Route::get('/contact-messages', [ContactMessageAdminController::class, 'index']);
         Route::put('/contact-messages/{id}', [ContactMessageAdminController::class, 'update'])->whereNumber('id');
