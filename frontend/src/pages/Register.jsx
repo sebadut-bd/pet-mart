@@ -1,132 +1,158 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { PawPrint, Eye, EyeOff, User, Phone, Gift } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { AuthLayout } from '../components/layout/AuthLayout';
+import { Input } from '../components/ui/Input';
+import { PhoneInput } from '../components/ui/PhoneInput';
+import { PasswordInput } from '../components/ui/PasswordInput';
+import { Button } from '../components/ui/Button';
+import { BD_PHONE_REGEX, MIN_PASSWORD_LENGTH } from '../lib/constants';
+import { fieldErrors, getRedirectTarget } from '../lib/auth';
+import { isBlank, toastErrors } from '../lib/validation';
 
-const Register = () => {
+const FIELD_IDS = { name: 'reg-name', phone: 'reg-phone', password: 'reg-password', confirm: 'reg-confirm', referral_code: 'reg-referral' };
+
+export default function Register() {
+  useDocumentTitle('Create an account');
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [form, setForm] = useState({ name: '', phone: '', password: '', confirm: '', referral_code: '' });
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const set = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+    if (errors[key]) setErrors((x) => ({ ...x, [key]: undefined }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (isBlank(form.name)) e.name = 'Full name is required.';
+    if (isBlank(form.phone)) e.phone = 'Mobile number is required.';
+    else if (!BD_PHONE_REGEX.test(form.phone)) e.phone = 'Mobile number must be 11 digits and start with 01 (e.g. 017XXXXXXXX).';
+    // Minimum length is a server rule (RegisterRequest: min:6), checked here so the user sees it before submitting
+    if (isBlank(form.password)) e.password = 'Password is required.';
+    else if (form.password.length < MIN_PASSWORD_LENGTH) e.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+    if (isBlank(form.confirm)) e.confirm = 'Please confirm your password.';
+    else if (form.confirm !== form.password) e.confirm = 'Passwords do not match.';
+    setErrors(e);
+    if (Object.keys(e).length) toastErrors(e, FIELD_IDS);
+    return Object.keys(e).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    if (!validate()) return;
     setLoading(true);
-    setErrorMsg('');
-
     try {
-      await register(name, phone, password, referralCode);
-      navigate('/dashboard');
+      await register(form.name.trim(), form.phone, form.password, form.referral_code.trim());
+      toast.success('Your account is ready.');
+      navigate(getRedirectTarget(location), { replace: true });
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Registration failed. Check details.');
+      const fe = fieldErrors(err);
+      setErrors(fe);
+      if (Object.keys(fe).length) {
+        toastErrors(fe, FIELD_IDS);
+      } else {
+        const msg = !err.response
+          ? 'No connection to the server. Check your internet and try again.'
+          : err.response.data?.message || 'Registration failed. Please try again.';
+        setFormError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '460px', margin: '3rem auto', padding: '0 1.5rem' }}>
-      <div style={{ background: 'white', padding: '2.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.06)' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', background: '#ecfdf5', padding: '12px', borderRadius: '50%', color: '#10b981', marginBottom: '0.75rem' }}>
-            <PawPrint size={32} />
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Create Your Account</h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Join PetMart Bangladesh to buy, sell, or adopt pets</p>
+    <AuthLayout
+      title="Create your account"
+      subtitle="Free to join. Post listings, save pets and message sellers."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link to="/login" state={location.state} className="font-semibold text-primary-hover hover:underline">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      {formError && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+          {formError}
         </div>
-
-        {errorMsg && (
-          <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Tanvir Ahmed"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="form-control"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Phone Number *</label>
-            <div className="phone-input-group">
-              <span className="phone-prefix">+880</span>
-              <input
-                type="tel"
-                required
-                placeholder="1700000000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="form-control"
-              />
-            </div>
-            <small style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
-              Format: 11-digit Bangladesh phone number (017... or 018...)
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label>Password *</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                minLength={6}
-                placeholder="At least 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-control"
-                style={{ paddingRight: '40px' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Gift size={16} /> Referral Code (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="Enter promo or friend code"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value)}
-              className="form-control"
-            />
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.9rem', fontSize: '1rem', marginTop: '1rem' }}>
-            {loading ? 'Creating Account...' : 'Register Account'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem', color: '#64748b' }}>
-          Already have an account? <Link to="/login" style={{ color: '#10b981', fontWeight: 700 }}>Log In</Link>
+      )}
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <Input
+          id="reg-name"
+          label="Full name"
+          required
+          autoComplete="name"
+          value={form.name}
+          onChange={set('name')}
+          error={errors.name}
+        />
+        <PhoneInput
+          id="reg-phone"
+          label="Mobile number"
+          required
+          autoComplete="username"
+          value={form.phone}
+          onChange={set('phone')}
+          error={errors.phone}
+          hint="Buyers will contact you on this number."
+        />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <PasswordInput
+            id="reg-password"
+            label="Password"
+            required
+            autoComplete="new-password"
+            value={form.password}
+            onChange={set('password')}
+            error={errors.password}
+            hint={`At least ${MIN_PASSWORD_LENGTH} characters`}
+          />
+          <PasswordInput
+            id="reg-confirm"
+            label="Confirm password"
+            required
+            autoComplete="new-password"
+            value={form.confirm}
+            onChange={set('confirm')}
+            error={errors.confirm}
+          />
         </div>
-      </div>
-    </div>
+        <Input
+          id="reg-referral"
+          label="Referral code (optional)"
+          value={form.referral_code}
+          onChange={set('referral_code')}
+          error={errors.referral_code}
+        />
+        <Button type="submit" size="lg" className="w-full" loading={loading} iconLeft={<UserPlus size={18} />}>
+          Create account
+        </Button>
+        <p className="text-center text-xs text-muted">
+          By creating an account you agree to our{' '}
+          <Link to="/terms" className="underline hover:text-navy">
+            Terms
+          </Link>{' '}
+          and{' '}
+          <Link to="/privacy" className="underline hover:text-navy">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </form>
+    </AuthLayout>
   );
-};
-
-export default Register;
+}

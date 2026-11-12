@@ -1,104 +1,111 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Phone, Lock, Eye, EyeOff, PawPrint } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { AuthLayout } from '../components/layout/AuthLayout';
+import { PhoneInput } from '../components/ui/PhoneInput';
+import { PasswordInput } from '../components/ui/PasswordInput';
+import { Button } from '../components/ui/Button';
+import { BD_PHONE_REGEX } from '../lib/constants';
+import { fieldErrors, getRedirectTarget } from '../lib/auth';
+import { isBlank, toastErrors } from '../lib/validation';
 
-const Login = () => {
+export default function Login() {
+  useDocumentTitle('Log in');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [phone, setPhone] = useState('01700000002');
-  const [password, setPassword] = useState('password');
-  const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const validate = () => {
+    const e = {};
+    if (isBlank(phone)) e.phone = 'Mobile number is required.';
+    else if (!BD_PHONE_REGEX.test(phone)) e.phone = 'Mobile number must be 11 digits and start with 01 (e.g. 017XXXXXXXX).';
+    if (isBlank(password)) e.password = 'Password is required.';
+    setErrors(e);
+    if (Object.keys(e).length) toastErrors(e, { phone: 'login-phone', password: 'login-password' });
+    return Object.keys(e).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    if (!validate()) return;
     setLoading(true);
-    setErrorMsg('');
-
     try {
       await login(phone, password);
-      navigate('/dashboard');
+      toast.success('Welcome back!');
+      navigate(getRedirectTarget(location), { replace: true });
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Login failed. Please check phone & password.');
+      const fe = fieldErrors(err);
+      setErrors(fe);
+      if (Object.keys(fe).length) {
+        toastErrors(fe, { phone: 'login-phone', password: 'login-password' });
+      } else {
+        const msg = !err.response
+          ? 'No connection to the server. Check your internet and try again.'
+          : err.response.data?.message || 'Login failed. Check your mobile number and password.';
+        setFormError(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '440px', margin: '4rem auto', padding: '0 1.5rem' }}>
-      <div style={{ background: 'white', padding: '2.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.06)' }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', background: '#ecfdf5', padding: '12px', borderRadius: '50%', color: '#10b981', marginBottom: '0.75rem' }}>
-            <PawPrint size={32} />
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Welcome Back</h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Login to your PetMart Bangladesh account</p>
+    <AuthLayout
+      title="Log in"
+      subtitle="Welcome back. Log in to message sellers and manage your listings."
+      footer={
+        <>
+          New to PetMart?{' '}
+          <Link to="/register" state={location.state} className="font-semibold text-primary-hover hover:underline">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {formError && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+          {formError}
         </div>
-
-        {errorMsg && (
-          <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem', fontWeight: 600 }}>
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          
-          <div className="form-group">
-            <label>Phone Number *</label>
-            <div className="phone-input-group">
-              <span className="phone-prefix">+880</span>
-              <input
-                type="tel"
-                required
-                placeholder="1700000000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="form-control"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <label style={{ marginBottom: 0 }}>Password *</label>
-              <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>Forgot Password?</Link>
-            </div>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="form-control"
-                style={{ paddingRight: '40px' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '0.9rem', fontSize: '1rem', marginTop: '1rem' }}>
-            {loading ? 'Logging in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.9rem', color: '#64748b' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#10b981', fontWeight: 700 }}>Register Now</Link>
-        </div>
-      </div>
-    </div>
+      )}
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <PhoneInput
+          id="login-phone"
+          label="Mobile number"
+          required
+          autoComplete="username"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          error={errors.phone}
+        />
+        <PasswordInput
+          id="login-password"
+          label="Password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={errors.password}
+          labelAction={
+            <Link to="/forgot-password" className="text-xs font-semibold text-primary-hover hover:underline">
+              Forgot password?
+            </Link>
+          }
+        />
+        <Button type="submit" size="lg" className="w-full" loading={loading} iconLeft={<LogIn size={18} />}>
+          Log in
+        </Button>
+      </form>
+    </AuthLayout>
   );
-};
-
-export default Login;
+}

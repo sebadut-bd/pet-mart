@@ -70,8 +70,10 @@ class ProductController extends Controller
         }
 
         // Dynamic key-value attribute filter (e.g. attributes[breed]=Persian)
-        if ($request->has('attributes') && is_array($request->attributes)) {
-            foreach ($request->attributes as $key => $val) {
+        // Note: $request->attributes is Symfony's internal bag, not input – use input()
+        $attributeFilters = $request->input('attributes');
+        if (is_array($attributeFilters)) {
+            foreach ($attributeFilters as $key => $val) {
                 if (!empty($val)) {
                     $query->whereHas('attributes', function ($q) use ($key, $val) {
                         $q->where('attribute_key', $key)->where('attribute_value', $val);
@@ -162,8 +164,9 @@ class ProductController extends Controller
         }
 
         // Attach dynamic attributes (breed, age, vaccination, etc.)
-        if ($request->has('attributes') && is_array($request->attributes)) {
-            foreach ($request->attributes as $key => $val) {
+        $attributeValues = $request->input('attributes');
+        if (is_array($attributeValues)) {
+            foreach ($attributeValues as $key => $val) {
                 if ($val !== null && $val !== '') {
                     ProductAttribute::create([
                         'product_id'      => $product->id,

@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
             'area_id' => ['nullable', 'exists:locations,id'],
             'full_address' => ['nullable', 'string', 'max:255'],
             'images' => ['nullable', 'array', 'min:1'],
-            'images.*' => ['nullable', 'string'], // URL or base64 / path
+            'images.*' => ['nullable', 'string', 'max:255'], // uploaded storage path (POST /uploads/images) or https URL
             'attributes' => ['nullable', 'array'], // key-value map of dynamic fields e.g. ["breed" => "Persian", "age" => "2 months"]
         ];
     }

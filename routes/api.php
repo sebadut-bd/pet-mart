@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\v1\LocationController;
 use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ProductReportController;
 use App\Http\Controllers\Api\v1\ReviewController;
+use App\Http\Controllers\Api\v1\UploadController;
 use App\Http\Controllers\Api\v1\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,22 @@ Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'updateP
 Route::apiResource('/modules', App\Http\Controllers\ModuleController::class);
 Route::apiResource('/roles', App\Http\Controllers\RoleController::class);
 Route::apiResource('/role_permissions', App\Http\Controllers\RolePermissionController::class);
+
+/*
+|--------------------------------------------------------------------------
+| Admin panel: General Settings (session login + CSRF, admins only)
+|--------------------------------------------------------------------------
+| The Vue admin runs on the same origin, so the `web` group gives it the
+| session and CSRF check; `admin` rejects anyone who is not an admin.
+*/
+Route::middleware(['web', 'admin'])->prefix('general_setting')->group(function () {
+    Route::get('/', [App\Http\Controllers\GeneralSettingController::class, 'index']);
+    Route::post('/', [App\Http\Controllers\GeneralSettingController::class, 'update']);
+    Route::post('/{key}/image', [App\Http\Controllers\GeneralSettingController::class, 'uploadImage'])
+        ->where('key', '[a-z0-9_]+')->middleware('throttle:20,1');
+    Route::delete('/{key}/image', [App\Http\Controllers\GeneralSettingController::class, 'removeImage'])
+        ->where('key', '[a-z0-9_]+');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -49,11 +66,17 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/locations', [LocationController::class, 'index']);
 
+    // Public site settings (homepage banner, contact info…)
+    Route::get('/settings', [\App\Http\Controllers\Api\v1\SettingController::class, 'index']);
+
     // --- Protected User/Seller Endpoints ---
     Route::middleware('auth:sanctum')->group(function () {
         // User Profile
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+        // Listing photo upload (device / camera). Rate limited: 30 per minute per user.
+        Route::post('/uploads/images', [UploadController::class, 'image'])->middleware('throttle:30,1');
 
         // Seller Listings Management
         Route::post('/products', [ProductController::class, 'store']);

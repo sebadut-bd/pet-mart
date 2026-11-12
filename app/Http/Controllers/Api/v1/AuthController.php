@@ -14,10 +14,34 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     /**
+     * Bangladesh numbers are stored in mixed formats (01XXXXXXXXX and +8801XXXXXXXXX).
+     * Return every stored form of the same number so lookups match either one.
+     */
+    private function phoneVariants(string $phone): array
+    {
+        $digits = preg_replace('/\D/', '', $phone);
+        if (str_starts_with($digits, '880')) {
+            $digits = '0' . substr($digits, 3);
+        } elseif (str_starts_with($digits, '88')) {
+            $digits = substr($digits, 2);
+        }
+
+        return array_values(array_unique([$phone, $digits, '+88' . $digits, '88' . $digits]));
+    }
+
+    /**
      * Register customer/seller with phone number and password.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        if (User::whereIn('phone', $this->phoneVariants($request->phone))->exists()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'This mobile number is already registered.',
+                'errors'  => ['phone' => ['This mobile number is already registered.']],
+            ], 422);
+        }
+
         $user = User::create([
             'name'          => $request->name,
             'phone'         => $request->phone,
@@ -45,7 +69,7 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('phone', $request->phone)->first();
+        $user = User::whereIn('phone', $this->phoneVariants($request->phone))->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
