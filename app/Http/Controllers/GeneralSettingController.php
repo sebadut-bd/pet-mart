@@ -3,20 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\GeneralSetting;
+use App\Services\ImageStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
+use RuntimeException;
 
-/**
- * Admin panel: General Settings.
- * Routes are behind the session-based `admin` middleware (see routes/api.php).
- * Admins can only change values of existing keys; new keys are added via GeneralSettingSeeder.
- */
 class GeneralSettingController extends Controller
 {
-    /** All settings grouped for the admin form. */
     public function index(): JsonResponse
     {
         $settings = GeneralSetting::orderBy('group')->orderBy('id')->get()->map(fn (GeneralSetting $s) => [
@@ -27,6 +23,7 @@ class GeneralSettingController extends Controller
             'group'        => $s->group,
             'display_name' => $s->display_name ?: Str::headline($s->key),
             'is_public'    => $s->is_public,
+            'updated_at'   => $s->updated_at?->toIso8601String(),
         ]);
 
         return response()->json([
@@ -35,7 +32,6 @@ class GeneralSettingController extends Controller
         ]);
     }
 
-    /** Update text-type values: { settings: { key: value, ... } } */
     public function update(Request $request): JsonResponse
     {
         $request->validate([
@@ -49,39 +45,45 @@ class GeneralSettingController extends Controller
             ->keyBy('key');
 
         $errors = [];
+        $changed = 0;
         foreach ($request->input('settings') as $key => $value) {
             $row = $rows->get($key);
-            if (!$row) {
-                continue; // unknown or image keys are ignored
+            if (! $row) {
+                continue;
             }
             $value = is_string($value) ? trim($value) : $value;
             if ($value !== null && $value !== '') {
-                if ($row->type === 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                if ($row->type === 'email' && ! filter_var($value, FILTER_VALIDATE_EMAIL)) {
                     $errors[$key] = ["{$row->display_name} must be a valid email address."];
                     continue;
                 }
-                if ($row->type === 'url' && !preg_match('#^https?://#i', $value)) {
+                if ($row->type === 'url' && ! preg_match('#^https?://\S+$#i', $value)) {
                     $errors[$key] = ["{$row->display_name} must start with http:// or https://"];
                     continue;
                 }
             }
             $row->value = $value === '' ? null : $value;
-            $row->save();
+            if ($row->isDirty('value')) {
+                $row->save();
+                $changed++;
+            }
         }
 
         if ($errors) {
             return response()->json([
                 'status'  => 3000,
-                'message' => 'Some settings were not saved. Please check the highlighted fields.',
+                'message' => 'Some settings were not saved. Check the highlighted fields.',
                 'result'  => $errors,
             ]);
         }
 
-        return response()->json(['status' => 2000, 'message' => 'Settings saved.']);
+        return response()->json([
+            'status'  => 2000,
+            'message' => $changed ? 'Settings saved.' : 'No changes to save.',
+        ]);
     }
 
-    /** Upload / replace an image setting (e.g. home_hero_banner). */
-    public function uploadImage(Request $request, string $key): JsonResponse
+    public function uploadImage(Request $request, string $key, ImageStorage $images): JsonResponse
     {
         $setting = GeneralSetting::where('key', $key)->where('type', 'image')->firstOrFail();
 
@@ -92,16 +94,16 @@ class GeneralSettingController extends Controller
                 'dimensions:min_width=800,min_height=300,max_width=8000,max_height=8000',
             ],
         ], [
-            'image.dimensions' => 'The image must be at least 800×300 pixels.',
+            'image.dimensions' => 'The image must be at least 800 × 300 pixels.',
         ]);
 
-        $file = $request->file('image');
-        $extension = match ($file->getMimeType()) {
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            default      => 'jpg',
-        };
-        $path = $file->storeAs('settings', Str::uuid()->toString() . '.' . $extension, 'public');
+        try {
+            $path = $images->store($request->file('image'), 'settings');
+        } catch (RuntimeException $e) {
+            report($e);
+
+            return response()->json(['status' => 5000, 'message' => 'The image could not be saved. Please try another file.'], 422);
+        }
 
         $old = $setting->value;
         $setting->value = $path;
@@ -115,7 +117,6 @@ class GeneralSettingController extends Controller
         ]);
     }
 
-    /** Remove an image setting (site falls back to its default design). */
     public function removeImage(string $key): JsonResponse
     {
         $setting = GeneralSetting::where('key', $key)->where('type', 'image')->firstOrFail();
@@ -129,8 +130,7 @@ class GeneralSettingController extends Controller
 
     private function deleteStoredFile(?string $path): void
     {
-        // Only delete files this controller created
-        if ($path && str_starts_with($path, 'settings/') && !str_contains($path, '..')) {
+        if ($path && str_starts_with($path, 'settings/') && ! str_contains($path, '..')) {
             Storage::disk('public')->delete($path);
         }
     }

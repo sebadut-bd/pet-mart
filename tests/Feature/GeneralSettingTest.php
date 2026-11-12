@@ -9,10 +9,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-/**
- * Admin General Settings + public settings API.
- * Every test runs inside a transaction that is rolled back, and uses a fake disk.
- */
 class GeneralSettingTest extends TestCase
 {
     use DatabaseTransactions;
@@ -32,6 +28,7 @@ class GeneralSettingTest extends TestCase
         $u = new User();
         $u->id = 999999;
         $u->type = 1;
+        $u->status = true;
 
         return $u;
     }
@@ -41,6 +38,7 @@ class GeneralSettingTest extends TestCase
         $u = new User();
         $u->id = 999998;
         $u->type = 2;
+        $u->status = true;
 
         return $u;
     }
@@ -89,11 +87,10 @@ class GeneralSettingTest extends TestCase
             ->assertOk()->assertJsonPath('status', 2000);
 
         $first = GeneralSetting::get('home_hero_banner');
-        $this->assertMatchesRegularExpression('#^settings/[0-9a-f-]{36}\.jpg$#', $first);
+        $this->assertMatchesRegularExpression('#^settings/\d{4}/\d{2}/[0-9a-f-]{36}\.jpg$#', $first);
         Storage::disk('public')->assertExists($first);
         $this->assertStringContainsString('/storage/' . $first, $res->json('result.image_url'));
 
-        // Replacing deletes the old file
         $this->actingAs($this->admin())
             ->postJson('/api/general_setting/home_hero_banner/image', ['image' => UploadedFile::fake()->image('banner2.png', 1920, 700)])
             ->assertOk();

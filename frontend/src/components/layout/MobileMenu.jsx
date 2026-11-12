@@ -70,7 +70,7 @@ export function MobileMenu({ isOpen, onClose, searchQuery, setSearchQuery, onSea
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <Link to="/" className="flex items-center gap-2.5 text-xl font-extrabold" onClick={onClose} aria-label="PetMart home">
-            <img src="/brand/seba-dut.jpg" alt="" width="36" height="36" className="h-9 w-9 rounded-xl object-cover" />
+            <img src="/brand/seba-dut-logo.jpg" alt="" width="36" height="36" className="h-9 w-9 rounded-xl object-cover" />
             <span className="text-navy">Pet<span className="text-primary">Mart</span></span>
           </Link>
           <button

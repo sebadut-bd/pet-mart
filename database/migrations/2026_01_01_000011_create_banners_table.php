@@ -13,7 +13,6 @@ return new class extends Migration
             $table->string('title');
             $table->string('image');
             $table->string('link')->nullable();
-            // home_top, home_mid, home_bottom, sidebar, category_page
             $table->string('position', 50)->default('home_top');
             $table->integer('sort_order')->default(0);
             $table->boolean('status')->default(true);

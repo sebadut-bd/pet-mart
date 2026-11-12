@@ -1,71 +1,15 @@
 export const getters = {
-    modalTitle(state) {
-        return state.modalTitle;
-    },
-    formObject(state) {
-        return state.formObject;
-    },
-    formFilter(state) {
-        return state.formFilter;
-    },
-    formType(state) {
-        return state.formType;
-    },
-    dataList(state) {
-        return state.dataList;
-    },
-    updateId(state) {
-        return state.updateId;
-    },
-    filter(state) {
-        return state.filter;
-    },
-    httpRequest(state) {
-        return state.httpRequest;
-    },
-    requiredData(state) {
-        return state.requiredData;
-    },
-    Config(state) {
-        return state.Config;
-    },
-    allMenus(state) {
-        return state.allMenus;
-    },
-    Permissions(state) {
-        return state.Permissions;
-    },
-    Notifications(state) {
-        return state.Notifications;
-    },
-    NotificationIds(state) {
-        return state.NotificationIds;
-    },
-
-    DesktopNotifications(state) {
-        return state.DesktopNotifications;
-    },
-    DesktopNotificationIds(state) {
-        return state.DesktopNotificationIds;
-    },
-
-    currentPagination(state) {
-        return state.currentPagination;
-    },
-
-    Messages(state) {
-        return state.Messages;
-    },
-    detailsData(state) {
-        return state.detailsData;
-    },
-    uploadProgress(state) {
-        return state.uploadProgress;
-    },
-    user(state) {
-        return state.currentUser !== null && state.currentUser !== undefined ? state.currentUser : {};
-    },
-    globalDetailsData(state) {
-        return state.globalDetailsData;
-    },
+    modalTitle: (state) => state.modalTitle,
+    formObject: (state) => state.formObject,
+    formFilter: (state) => state.formFilter,
+    formType: (state) => state.formType,
+    dataList: (state) => state.dataList,
+    updateId: (state) => state.updateId,
+    httpRequest: (state) => state.httpRequest,
+    requiredData: (state) => state.requiredData,
+    Config: (state) => state.Config,
+    allMenus: (state) => state.allMenus,
+    currentPagination: (state) => state.currentPagination,
+    sidebarCollapsed: (state) => state.sidebarCollapsed,
+    sidebarOpen: (state) => state.sidebarOpen,
 };

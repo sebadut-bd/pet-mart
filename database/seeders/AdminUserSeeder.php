@@ -13,7 +13,6 @@ class AdminUserSeeder extends Seeder
     {
         $adminRole = Role::where('name', 'super_admin')->first();
 
-        // 1. Admin Account
         User::firstOrCreate(
             ['phone' => '+8801700000000'],
             [
@@ -28,7 +27,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        // 2. Verified Seller Account
         User::firstOrCreate(
             ['phone' => '+8801711111111'],
             [
@@ -44,7 +42,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        // 3. Regular Buyer Account
         User::firstOrCreate(
             ['phone' => '+8801722222222'],
             [

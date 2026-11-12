@@ -1,606 +1,182 @@
-import {printPage} from '../plugins/print_div';
-
 export default {
     data() {
-        const getGlobalBaseUrl = () => {
-            if (typeof baseUrl !== 'undefined') return baseUrl;
-            if (typeof window !== 'undefined' && window.baseUrl) return window.baseUrl;
-            return '';
-        };
-
         return {
-            baseUrl: getGlobalBaseUrl(),
-            sortData: [],
-            sortable: false,
-            perPages: [5, 10, 15, 20, 30, 40, 50, 100, 200],
-            singleNumber: '',
-            extra_plugins: [
-                "advlist autolink lists link image charmap print preview hr anchor pagebreak",
-                "searchreplace wordcount visualblocks visualchars code fullscreen",
-                "insertdatetime media nonbreaking save table contextmenu directionality",
-                "emoticons template paste textcolor colorpicker textpattern", "emoticons template paste textcolor colorpicker textpattern code directionality table", "insertdatetime media nonbreaking save table contextmenu directionality",
-            ],
-            toolbars2: "insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table tabledelete | tableprops tablerowprops tablecellprops | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | code",
-
-            tinyMCESetup: {
-                height: 200,
-                menubar: false,
-                path_absolute: "/",
-
-                statusbar: false,
-                allow_script_urls: true,
-                relative_urls: false,
-                remove_script_host: false,
-                convert_urls: true,
-                paste_data_images: false,
-                paste_as_text: true,
-                paste_enable_default_filters: true,
-                images_upload_url: '/api/image',
-                images_upload_handler: function (blobInfo, success, failure) {
-                    var xhr, formData;
-
-                    xhr = new XMLHttpRequest();
-                    xhr.withCredentials = false;
-                    xhr.open('POST', '/api/image/');
-
-                    xhr.onload = function () {
-                        var json;
-
-                        if (xhr.status != 200) {
-                            console.log('HTTP Error: ' + xhr.status);
-                            return;
-                        }
-
-                        json = JSON.parse(xhr.responseText);
-
-                        if (!json || typeof json.location != 'string') {
-                            console.log('Invalid JSON: ' + xhr.responseText);
-                            return;
-                        }
-
-                        success(json.location);
-                    };
-
-                    formData = new FormData();
-                    formData.append('file', blobInfo.blob(), blobInfo.filename());
-                    // append CSRF token in the form data
-                    formData.append('_token', $('meta[name="csrf_token"]').attr('content'));
-
-                    xhr.send(formData);
-                },
-                plugins: [
-                    'advlist autolink lists link image charmap print preview anchor',
-                    'searchreplace visualblocks code fullscreen',
-                    'insertdatetime media table paste code help wordcount image'
-                ],
-                toolbar: 'insertfile undo redo | formatselect | bold italic backcolor | \
-                    alignleft aligncenter alignright alignjustify | \
-                    bullist numlist outdent indent | removeformat | help | link image media',
-                    forced_root_block: false,
-            },
-            numberInputValidation: [
-                {classes: 'text-warning', rule: (tag => tag.text.length !== 11 || tag.text.length !== 13)},
-                {classes: 'text-success', rule: tag => tag.text.length === 11},
-                {classes: 'text-success', rule: tag => tag.text.length === 13},
-            ],
-            contentType : [
-                {name : 'English', value : 1},
-                // {name : 'English Flash', value : 2},
-                {name : 'Unicode(Bangla)', value : 3},
-                // {name : 'Unicode Flash (Bangla)', value : 4},
-            ],
-
-            maxCharacters: 0,
-            charactersPerPart: 0,
-            totalLimit: 0,
-        }
+            baseUrl: window.baseUrl || '',
+            perPages: [10, 15, 20, 30, 50, 100],
+        };
     },
     watch: {
-        'errors': {
-            handler: function (value) {
+        errors: {
+            handler(value) {
                 const _this = this;
-                var is_invalid = $('.is-invalid');
-                $(is_invalid).removeAttr("title", '');
-                $(is_invalid).removeClass('is-invalid');
+                $('.is-invalid').removeAttr('title').removeClass('is-invalid');
                 $('.error_message').remove();
-                if (value.items.length > 0) {
-                    value.items.forEach(function (val) {
-                        var target = $("[name='" + val.field + "']");
-                        if ($('.is-invalid').length == 0) {
-                            $(target).parent().remove(`#${val.field}_message`);
-                        }
-                        var message = _this.replaceString(val.msg, val.field);
-                        if ($(`#${val.field}_message`).length == 0) {
-                            $(target).parent().append(`<span style="color:red" class="error_message" id="${val.field}_message">${message}</span>`);
-                        }
-                        $(target).addClass('is-invalid');
-                        $(target).attr("title", message.replace(val.field, ""));
-                    });
-                }
+                (value.items || []).forEach(function (val) {
+                    const target = $(`[name='${val.field}']`);
+                    const message = _this.replaceString(val.msg, val.field);
+                    if ($(`#${val.field}_message`).length === 0) {
+                        target.parent().append(`<span class="error_message" id="${val.field}_message">${$('<div>').text(message).html()}</span>`);
+                    }
+                    target.addClass('is-invalid').attr('title', message);
+                });
             },
-            deep: true
+            deep: true,
         },
-        '$store.getters.httpRequest': function () {
-            if (this.httpRequest) {
-                $('.main-content button').attr('disabled', 'disabled');
-                $('.main-content input').attr('disabled', 'disabled');
-            } else {
-                $('.main-content button').removeAttr('disabled');
-                $('.main-content input').removeAttr('disabled');
-            }
-        },
-        '$route.path': function () {
-            this.assignCurrentAccess();
-        }
     },
     computed: {
-        detailsData: function () {
-            return this.$store.getters.detailsData;
+        formType() { return this.$store.getters.formType; },
+        formObject() { return this.$store.getters.formObject; },
+        formFilter() { return this.$store.getters.formFilter; },
+        dataList() { return this.$store.getters.dataList; },
+        updateId() { return this.$store.getters.updateId; },
+        httpRequest() { return this.$store.getters.httpRequest; },
+        requiredData() { return this.$store.getters.requiredData; },
+        modalTitle() { return this.$store.getters.modalTitle; },
+        Config() { return this.$store.getters.Config; },
+        allMenus() { return this.$store.getters.allMenus; },
+        currentPagination() { return this.$store.getters.currentPagination; },
+        Permissions() {
+            const config = this.$store.getters.Config;
+            return (config && Array.isArray(config.permissions)) ? config.permissions : [];
         },
-        formType: function () {
-            return this.$store.getters.formType;
-        },
-        formObject: function () {
-            return this.$store.getters.formObject;
-        },
-        formFilter: function () {
-            return this.$store.getters.formFilter;
-        },
-        dataList: function () {
-            return this.$store.getters.dataList;
-        },
-        updateId: function () {
-            return this.$store.getters.updateId;
-        },
-        httpRequest: function () {
-            return this.$store.getters.httpRequest;
-        },
-        requiredData: function () {
-            return this.$store.getters.requiredData;
-        },
-        modalTitle: function () {
-            return this.$store.getters.modalTitle;
-        },
-        Config: function () {
-            return this.$store.getters.Config;
-        },
-        allMenus: function () {
-            return this.$store.getters.allMenus;
-        },
-        Permissions: function () {
-            if (this.$store.getters.Config.permissions !== undefined
-                && this.$store.getters.Config.permissions != null) {
-                return this.$store.getters.Config.permissions;
-            }
-            return [];
-        },
-        currentPage: function () {
-            return this.$store.getters.currentPage;
-        },
-        currentPagination: function () {
-            return this.$store.getters.currentPagination;
-        },
-        uploadProgress: function () {
-            return this.$store.getters.uploadProgress;
-        },
-        globalDetailsData: function () {
-            return this.$store.getters.globalDetailsData;
-        },
-
     },
     methods: {
-        resetFileInput: function (event) {
-            const element = event.target;
-            element.value = '';
-        },
-
-        printData: function (div_id = 'printDiv') {
-            console.log(div_id);
-            printPage("#" + div_id);
-        },
-        routePush: function (path) {
-            this.$router.push({path: path})
-        },
-        assignCurrentAccess: function () {
-        },
-
-        can: function (role) {
-            const _this = this;
-            if ((_this.Permissions !== null && _this.Permissions.length > 0)
-                && _this.Permissions.includes(role)) {
-                return true;
-            }
-            return false;
+        can(permission) {
+            return this.Permissions.includes(permission);
         },
         showData(dataArray, fieldName, retBoolean = false) {
-            if ((dataArray !== null && dataArray !== undefined)
-                && (dataArray[fieldName] !== undefined && dataArray[fieldName] !== null)) {
+            if (dataArray && dataArray[fieldName] !== undefined && dataArray[fieldName] !== null) {
                 return dataArray[fieldName];
-            } else {
-                return retBoolean ? false : '-';
             }
+            return retBoolean ? false : '-';
         },
-        getConfig: function (Obj, name) {
-            if ((Obj !== undefined && Obj !== null !== null) &&
-                (Obj[name] !== undefined && Obj[name] !== null)) {
-                return Obj[name];
-            } else {
-                return '';
-            }
+        editData(data, updateId, model = 'formModal', callback = false) {
+            this.$store.commit('formObject', data);
+            this.$store.commit('updateId', updateId);
+            this.$store.commit('formType', 2);
+            if (model) this.openModal(model);
+            if (typeof callback === 'function') callback(data);
         },
-        cloneData: function (data, exceptObject = [], model = 'formModal', formObject = false, callback = false) {
-            const _this = this;
-
-            $.each(data, function (index, value) {
-                if (!exceptObject.includes(index)) {
-                    if (formObject) {
-                        _this.$set(formObject, index, value);
-                    } else {
-                        _this.$set(_this.formObject, index, value);
-                    }
-                }
-            });
-            _this.$store.commit('formType', 1);
-
-            if (model) {
-                _this.openModal(model);
-            }
-            if (typeof callback == 'function') {
-                callback(data);
-            }
-        },
-        editData: function (data, updateId, model = 'formModal', callback = false) {
-            const _this = this;
-            _this.$store.commit('formObject', data);
-            _this.$store.commit('updateId', updateId);
-            _this.$store.commit('formType', 2);
-
-            if (model) {
-                _this.openModal(model);
-            }
-            if (typeof callback == 'function') {
-                callback(data);
-            }
-            setTimeout(() => {
-                $("select").trigger("change.select2");
-            }, 1000);
-        },
-
-        openModal: function (modalName = 'formModal', title = false, callback = false, resetValidation = true, defaultObject = {}, formObject = false) {
-            const _this = this;
-
-            if (title) {
-                this.$store.commit('modalTitle', title);
-            }
+        openModal(modalName = 'formModal', title = false, callback = false, resetValidation = true, defaultObject = {}, formObject = false) {
+            if (title) this.$store.commit('modalTitle', title);
             $('#' + modalName).modal('show');
-
-            if (resetValidation) {
-                this.$validator.reset();
-            }
-
-            $.each(defaultObject, function (index, value) {
-                if (formObject) {
-                    _this.$set(formObject, index, value);
-                } else {
-                    _this.$set(_this.formObject, index, value);
-                }
+            if (resetValidation) this.$validator.reset();
+            Object.keys(defaultObject || {}).forEach((key) => {
+                this.$set(formObject || this.formObject, key, defaultObject[key]);
             });
-
-            _this.$set(_this.formObject, 'school_id', _this.getCookie('school_id'));
-            _this.$set(_this.formObject, 'session_id', _this.Config.session_id);
-
-            if (typeof callback === 'function') {
-                callback(true);
-            }
+            if (typeof callback === 'function') callback(true);
         },
-        closeModal: function (modalName = 'createModal', resetForm = true, resetFormType = true, formObject = false) {
-            const _this = this;
+        closeModal(modalName = 'formModal', resetForm = true, resetFormType = true) {
             this.$validator.reset();
             $('#' + modalName).modal('hide');
-            this.$store.commit('formType', 1);
             $('.error_message').remove();
             $('.is-invalid').removeClass('is-invalid');
-            if (resetForm) {
-                if (formObject) {
-                    formObject = {};
-                } else {
-                    this.$store.commit('formObject', {});
-                }
-
-            }
-            if (resetFormType) {
-                _this.$store.state.formType = 1;
-            }
+            if (resetForm) this.$store.commit('formObject', {});
+            if (resetFormType) this.$store.commit('formType', 1);
         },
-        getUrl: function () {
-            if (this.$route && this.$route.meta && this.$route.meta.dataUrl !== undefined) {
-                return this.$route.meta.dataUrl;
-            }
-            return '';
+        getUrl() {
+            return (this.$route && this.$route.meta && this.$route.meta.dataUrl) || '';
         },
-        urlGenerate: function (customUrl = false) {
-            var url = '';
-            const currentBaseUrl = (typeof baseUrl !== 'undefined') ? baseUrl : (window.baseUrl || '');
+        urlGenerate(customUrl = false) {
             let target = customUrl || this.getUrl();
-            if (target) {
-                if (!target.startsWith('api/') && !target.startsWith('http://') && !target.startsWith('https://')) {
-                    target = 'api/' + target;
-                }
+            if (target && !/^(api\/|https?:\/\/)/.test(target)) target = 'api/' + target;
+            if (/^https?:\/\//.test(target)) return target;
+            return `${window.baseUrl || ''}/${target}`;
+        },
+        assignValidationError(errors) {
+            Object.keys(errors || {}).forEach((field) => {
+                const msg = Array.isArray(errors[field]) ? errors[field][0] : errors[field];
+                this.$validator.errors.add({ id: field, field, name: field, msg });
+            });
+        },
+        resetForm(formData) {
+            if (formData && typeof formData === 'object') {
+                Object.keys(formData).forEach((key) => { formData[key] = ''; });
             }
-            url = `${currentBaseUrl}/${target}`;
-            return url;
+            return formData;
         },
-        assignValidationError: function (errors) {
-            const _this = this;
-            $.each(errors, function (index, errorValue) {
-                _this.$validator.errors.add({
-                    id: index,
-                    field: index,
-                    name: index,
-                    msg: errorValue[0],
-                });
-            })
-        },
-        resetForm: function (formData) {
-            if (typeof formData == 'object') {
-                Object.keys(formData).forEach(function (key) {
-                    formData[key] = '';
-                });
-                return formData;
-            }
-        },
-        pageTitle: function () {
+        pageTitle() {
             return (this.$route && this.$route.meta) ? this.$route.meta.pageTitle : '';
         },
-        resetFilter: function (parameter = []) {
-            this.$store.commit('resetFilter', parameter);
-            this.getDataList();
+        indexToLabel(string) {
+            if (typeof string !== 'string') return '';
+            const s = string.replace(/_/g, ' ');
+            return s.charAt(0).toUpperCase() + s.slice(1);
         },
-        clickImageInput: function (ID) {
-            $('#' + ID).click();
+        arrLength(array) {
+            return array && array.length !== undefined ? array.length : 0;
         },
-        getImage: function (imagePath = null, alternative = false) {
-            const upPath = (typeof UploadPath !== 'undefined') ? UploadPath : (window.UploadPath || '/uploads');
-            const pubPath = (typeof publicPath !== 'undefined') ? publicPath : (window.publicPath || '');
-            if (imagePath !== undefined && imagePath !== '' && imagePath !== null) {
-                return `${upPath}/${imagePath}`;
-            }
-            if (alternative) {
-                return `${pubPath}/${alternative}`;
-            }
+        showStatus(status, activeText = 'Active', inactiveText = 'Inactive') {
+            return parseInt(status) === 1
+                ? `<span class="pm-badge is-success pointer">${activeText}</span>`
+                : `<span class="pm-badge is-danger pointer">${inactiveText}</span>`;
         },
-        getUpload: function (filePath) {
-            const upPath = (typeof UploadPath !== 'undefined') ? UploadPath : (window.UploadPath || '/uploads');
-            if (filePath !== undefined && filePath !== '') {
-                return `${upPath}/${filePath}`;
-            }
+        replaceString(string, name) {
+            return string ? string.replace(name, ' ') : '';
         },
-        indexToLabel: function (string) {
-            var removed_space = '';
-            if (typeof string === 'string') {
-                removed_space = string.replace(/_/g, ' ');
-                if (typeof removed_space !== 'string') {
-                    return index;
-                }
-                return removed_space.charAt(0).toUpperCase() + removed_space.slice(1)
-            }
-            return '';
-        },
-        addRow: function (object, pushEr) {
-            if (typeof object === 'object') {
-                object.push(pushEr);
-            }
-        },
-        deleteRow: function (object, index) {
-            object.splice(index, 1);
-        },
-        arrLength: function (array) {
-            if (array && array.length !== undefined) {
-                return array.length;
-            }
-            return 0;
-        },
-        openFile: function (url, filename) {
-            var newwindow;
-            var height = parseInt(window.innerHeight) - 100;
-            var width = parseInt(window.innerWidth) - 250;
-            newwindow = window.open(url, filename, `scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,width=${width},height=${height},left=100,top=100`);
-
-            if (window.focus) {
-                newwindow.focus()
-            }
-            return false;
-        },
-
-        playSound: function (url) {
-            var audio = document.createElement('audio');
-            audio.style.display = "none";
-            audio.src = url;
-            audio.autoplay = true;
-            audio.onended = function () {
-                audio.remove()
-            };
-            document.body.appendChild(audio);
-        },
-        showStatus: function (status, activeText = "Active", inactiveText = "InActive") {
-            if (parseInt(status) === 1) {
-                return `<span class="badge badge-soft-success">${activeText}</span>`;
-            }
-
-            return `<span class="badge badge-soft-danger">${inactiveText}</span>`;
-        },
-        startSortable: function () {
-            const _this = this;
-            if (_this.sortable) {
-                _this.sortable = false;
-                $("#sortable").sortable("disable");
-                _this.$toastr('warning', 'Sorting DeActivated', 'Information');
-                return;
-            }
-            _this.sortable = true;
-            _this.$toastr('warning', 'Sorting Activated, now you can Change The list', 'Information');
-
-            $("#sortable").sortable({
-                update: function (event, ui) {
-                    _this.sortData = [];
-                    let product_list = $(".sort_each");
-                    $.each(product_list, function (index, value) {
-                        _this.sortData.push({
-                            id: $(value).attr("data-id"),
-                            sort_id: index + 1
-                        });
-                    });
-                    _this.changeStatus({
-                        sorts: _this.sortData,
-                        type: 'sort',
-                    }, false)
-                }
-            });
-        },
-        updateSortable: function (trigger) {
-            let data = [];
-            NewArray = [];
-            let product_list = $(".sort_product-each");
-            product_list.each(function (index, value) {
-                let rv = {
-                    id: $(value).attr("data_product_id"),
-                    sort_id: (index + 1)
-                };
-                NewArray.push(rv)
-            });
-        },
-
-        replaceString: function (string, name) {
-            if (string !== undefined && string !== null) {
-                return string.replace(name, ' ');
-            }
-
-            return '';
-        },
-        confirmBox: function (callback = false, title = null, message = null) {
-            const _this = this;
-            var TiTle = title ? title : 'Are you sure..??';
-            var MessAge = message ? message : 'Data will be delete Permanently??';
+        confirmBox(callback = false, title = null, message = null) {
             this.$swal({
-                title: TiTle,
-                text: MessAge,
+                title: title || 'Are you sure?',
+                text: message || 'This cannot be undone.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: '<i class="fa fa-check"></i>',
-                cancelButtonText: '<i class="fa fa-close"></i>',
-                showCloseButton: true,
+                confirmButtonText: 'Yes, continue',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
             }).then((result) => {
-                if (typeof callback == 'function') {
-                    callback(result.value);
-                }
+                if (typeof callback === 'function') callback(result.value);
             });
         },
-        onTimeCreate: function (url, objectName = false, closeModal = false) {
-            const _this = this;
-            _this.submitForm(_this.formObject, false, function (retData) {
-                if (objectName) {
-                    _this.getGeneralData([objectName]);
-                }
-
-                if (closeModal) {
-                    _this.closeModal('createModal', false);
-                }
-            }, false, url)
-        },
-        setCharactersLimit: function () {
-            const _this = this;
-            if (_this.requiredData.characters !== undefined) {
-                if (parseInt(_this.formObject.content_type) === 2) {
-                    _this.maxCharacters = parseInt(_this.requiredData.characters.unicode.count);
-                    _this.totalLimit = parseInt(_this.requiredData.characters.unicode.limit);
-                } else {
-                    _this.maxCharacters = parseInt(_this.requiredData.characters.english.count);
-                    _this.totalLimit = parseInt(_this.requiredData.characters.english.limit);
-                }
-            } else {
-                _this.maxCharacters = 160;
-                _this.totalLimit = 1000;
-            }
-        },
-        smsCost : function (data){
-            if(data.message !== undefined && data.message !== null){
-                return `${(parseFloat(data.rate)*parseFloat(data.message.sms_count))} BDT`;
-            }
-            return  0;
-        },
-        globalDetails : function (data, modalTitle = null, modalId = 'detailsModal') {
-            const _this = this;
-            _this.$store.commit('globalDetailsData', data);
-            _this.openModal(modalId, modalTitle);
-        },
-        capitalize: function(string) {
+        capitalize(string) {
             if (!string) return '';
             return string.charAt(0).toUpperCase() + string.slice(1);
         },
-        formatDate(date) {
-            const options = {year: 'numeric', month: '2-digit', day: '2-digit'};
-            return date.toLocaleDateString('en-US', options);
+        nameInitials(name) {
+            const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) return '?';
+            if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
         },
-
-        SetSchoolId: function (schoolId) {
-            const _this = this;
-            _this.setCookie('school_id', schoolId, 30);
-            location.reload();
+        avatarTone(seed) {
+            const s = String(seed || '');
+            let h = 0;
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
+            return 'tone-' + (h % 6);
         },
-
-        setCookie: function (name, value, days) {
-            var expires = "";
-            if (days) {
-                var date = new Date();
-                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                expires = "; expires=" + date.toUTCString();
+        statusTone(status) {
+            return {
+                active: 'is-success', live: 'is-success', resolved: 'is-success', approved: 'is-success', read: 'is-info',
+                pending: 'is-warning', new: 'is-warning',
+                rejected: 'is-danger', banned: 'is-danger', taken_down: 'is-danger', deleted: 'is-danger',
+                sold: 'is-info', featured: 'is-violet',
+                reviewed: 'is-neutral', expired: 'is-neutral',
+            }[status] || 'is-neutral';
+        },
+        money(value, isFree = false) {
+            if (isFree) return 'Free';
+            if (value === null || value === undefined || value === '') return 'Price on request';
+            return '৳ ' + Number(value).toLocaleString('en-IN');
+        },
+        dateTime(iso, withTime = true) {
+            if (!iso) return '—';
+            const opts = { day: '2-digit', month: 'short', year: 'numeric' };
+            if (withTime) Object.assign(opts, { hour: '2-digit', minute: '2-digit' });
+            return new Date(iso).toLocaleString('en-GB', opts);
+        },
+        timeAgo(iso) {
+            if (!iso) return '';
+            const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
+            if (s < 60) return 'just now';
+            const units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+            for (const [name, secs] of units) {
+                const n = Math.floor(s / secs);
+                if (n >= 1) return `${n} ${name}${n > 1 ? 's' : ''} ago`;
             }
-            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+            return 'just now';
         },
-        getCookie: function (name) {
-            var nameEQ = name + "=";
-            var ca = document.cookie.split(';');
-            for (var i = 0; i < ca.length; i++) {
-                var c = ca[i];
-                while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-            }
-            return null;
+        siteUrl(path = '') {
+            return (window.frontendUrl || '').replace(/\/+$/, '') + path;
         },
-
-        checkAll : function (event, object, column, arrayObject = false, pussColumn = 'id') {
-            const _this = this;
-
-            $.each(object, function (index, value) {
-                if (event.target.checked){
-                    _this.$set(value, column, 1);
-                    if (arrayObject){
-                        arrayObject.push(value[pussColumn]);
-                    }
-                }else{
-                    _this.$set(value, column, 0);
-                    if (arrayObject){
-                        const itemIndex = arrayObject.indexOf(value[pussColumn]);
-                        arrayObject.splice(itemIndex, 1);
-                    }
-                }
-            })
-        },
-
-        singleCheck : function (event, value, column, arrayObject = false, pussColumn = 'id') {
-            const _this = this;
-            if (event.target.checked){
-                _this.$set(value, column, 1);
-                if (arrayObject){
-                    arrayObject.push(value[pussColumn]);
-                }
-            }else{
-                _this.$set(value, column, 0);
-                if (arrayObject){
-                    const itemIndex = arrayObject.indexOf(value[pussColumn]);
-                    arrayObject.splice(itemIndex, 1);
-                }
-            }
-        }
     },
-}
+};

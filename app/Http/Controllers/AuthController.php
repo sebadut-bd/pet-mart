@@ -9,7 +9,7 @@ class AuthController extends Controller
 {
     public function loginPage()
     {
-        if (auth()->check() && auth()->user()->type === 1) {
+        if (Auth::check() && (int) Auth::user()->type === 1 && Auth::user()->status) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -18,24 +18,25 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
+        $credentials = $request->validate([
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'string'],
         ]);
 
-        $credentials = $request->only('email', 'password');
-
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            if (auth()->user()->type !== 1) {
-                Auth::logout();
-                return back()->withErrors(['email' => 'You do not have admin access.']);
-            }
-
-            $request->session()->regenerate();
-            return redirect()->route('admin.dashboard');
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
         }
 
-        return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
+        $user = Auth::user();
+        if ((int) $user->type !== 1 || ! $user->status) {
+            Auth::logout();
+
+            return back()->withErrors(['email' => $user->status ? 'You do not have admin access.' : 'Your account has been deactivated.'])->onlyInput('email');
+        }
+
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('admin.dashboard'));
     }
 
     public function logout(Request $request)

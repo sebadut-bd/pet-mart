@@ -24,7 +24,7 @@ class User extends Authenticatable
         'otp_expires_at',
         'password',
         'role_id',
-        'type', // 1=Admin, 2=Seller, 3=Buyer
+        'type',
         'image',
         'bio',
         'address',

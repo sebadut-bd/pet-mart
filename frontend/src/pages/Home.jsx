@@ -25,6 +25,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ProductGrid } from '../components/product/ProductGrid';
+import { PromoBanners } from '../components/layout/PromoBanners';
 
 function SectionHeader({ title, subtitle, to, linkLabel = 'View all' }) {
   return (
@@ -70,15 +71,23 @@ export default function Home() {
   const { categories, locations, loading: catalogLoading } = useCatalog();
   const { settings } = useSiteSettings();
   const [products, setProducts] = useState([]);
+  const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [form, setForm] = useState({ search: '', category_slug: '', division_id: '' });
 
   useEffect(() => {
     let active = true;
-    api
-      .get('/products', { params: { per_page: 12 } })
-      .then((res) => active && setProducts(res.data?.data || []))
+    Promise.all([
+      api.get('/products', { params: { per_page: 8 } }),
+      // Featured is optional: the section hides itself if this fails or is empty
+      api.get('/products', { params: { featured: 1, per_page: 4 } }).catch(() => null),
+    ])
+      .then(([recentRes, featuredRes]) => {
+        if (!active) return;
+        setProducts(recentRes.data?.data || []);
+        setFeatured(featuredRes?.data?.data || []);
+      })
       .catch(() => active && setError(true))
       .finally(() => active && setLoading(false));
     return () => {
@@ -91,7 +100,6 @@ export default function Home() {
     () => categories.flatMap((c) => (c.children?.length ? c.children : [c])),
     [categories],
   );
-  const featured = products.filter((p) => p.is_featured).slice(0, 4);
   const recent = products.slice(0, 8);
 
   const onSearch = (e) => {
@@ -242,6 +250,8 @@ export default function Home() {
         </a>
       </section>
 
+      <PromoBanners position="home_top" className="pt-6" />
+
       {/* Categories */}
       <Container id="categories" className="scroll-mt-[72px] pb-5 pt-6 sm:pt-7">
         <SectionHeader title="Browse by category" to="/browse" linkLabel="All listings" />
@@ -313,6 +323,8 @@ export default function Home() {
           <ProductGrid products={recent} loading={loading} skeletonCount={8} />
         )}
       </Container>
+
+      <PromoBanners position="home_middle" className="pb-12 sm:pb-16" />
 
       {/* How it works */}
       <section className="border-y border-border bg-white">

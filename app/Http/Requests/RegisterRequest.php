@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -13,28 +14,28 @@ class RegisterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('phone')) {
-            $phone = preg_replace('/[^\d+]/', '', $this->phone);
-            if (!str_starts_with($phone, '+880')) {
-                if (str_starts_with($phone, '880')) {
-                    $phone = '+' . $phone;
-                } elseif (str_starts_with($phone, '0')) {
-                    $phone = '+88' . $phone;
-                } else {
-                    $phone = '+880' . $phone;
-                }
-            }
-            $this->merge(['phone' => $phone]);
+        if ($this->filled('phone')) {
+            $this->merge(['phone' => PhoneNumber::normalize($this->input('phone'))]);
+        }
+        if ($this->filled('name')) {
+            $this->merge(['name' => trim((string) $this->input('name'))]);
         }
     }
 
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:100'],
-            'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
-            'password' => ['required', 'string', 'min:6'],
+            'name'          => ['required', 'string', 'min:2', 'max:100'],
+            'phone'         => ['required', 'string', 'regex:' . PhoneNumber::PATTERN],
+            'password'      => ['required', 'string', 'min:6', 'max:100'],
             'referral_code' => ['nullable', 'string', 'max:30'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'phone.regex' => 'Enter a valid Bangladesh mobile number, e.g. 01712345678.',
         ];
     }
 }

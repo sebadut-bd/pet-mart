@@ -1,389 +1,179 @@
 export default {
     data() {
         return {
-            formData: {},
-            SelectFilter: {},
             filter: {},
-            per_page: 20,
-            formImages: '',
-        }
+        };
     },
     methods: {
-        onFileSelected: function (event, fieldIndex) {
-            let file = event.target.files[0];
-            let reader = new FileReader();
-            reader.onload = (e) => {
-                this.imageData[fieldIndex] = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        httpErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
+            const res = error && error.response;
+            if (!res) return 'No connection to the server. Check your network and try again.';
+            const data = res.data || {};
+            const bag = data.errors || (parseInt(data.status) === 3000 ? data.result : null);
+            if (bag && typeof bag === 'object') {
+                const first = Object.values(bag)[0];
+                if (first) return Array.isArray(first) ? first[0] : String(first);
+            }
+            if (res.status === 403) return data.message || 'You do not have permission to do this.';
+            if (res.status === 404) return 'This record no longer exists. Refresh the page.';
+            if (res.status === 429) return 'Too many requests. Please wait a moment and try again.';
+            return data.message || fallback;
         },
-        getGeneralData: function ($array, callback = false) {
-            const _this = this;
 
-            _this.axios.post(_this.urlGenerate('api/general'), $array).then(response => {
-                $.each(response.data.result, function (index, value) {
-                    _this.$set(_this.requiredData, index, value);
-                    // _this.$store.commit('requiredData', response.data.result);
+        adminRequest(method, url, data = {}, { silent = false, params = {} } = {}) {
+            return this.axios({ method, url: this.urlGenerate(url), data, params })
+                .then((response) => {
+                    const body = response.data || {};
+                    if (parseInt(body.status) !== 2000) {
+                        const err = new Error(body.message || 'Request failed');
+                        err.response = { status: 422, data: body };
+                        throw err;
+                    }
+                    if (!silent && body.message) this.$toastr('success', body.message, 'Done');
+                    return body.result;
+                })
+                .catch((error) => {
+                    this.$toastr('error', this.httpErrorMessage(error), 'Error');
+                    throw error;
                 });
-
-                if (typeof callback === 'function') {
-                    callback(response.data.result);
-                }
-
-            }).catch(function (error) {
-                console.log(error);
-                _this.$store.commit('httpRequest', false);
-                _this.$toastr('error', 'Whoops..!! something went wrong', 'Error');
-            });
         },
-        getGeneralDataStudent: function ($array, callback = false) {
+
+        getDataList(page = 1, callback = false) {
             const _this = this;
-
-            _this.axios.post(_this.urlGenerate('general'), $array).then(response => {
-                $.each(response.data.result, function (index, value) {
-                    _this.$set(_this.requiredData, index, value);
-                    // _this.$store.commit('requiredData', response.data.result);
-                });
-
-                if (typeof callback === 'function') {
-                    callback(response.data.result);
-                }
-
-            }).catch(function (error) {
-                console.log(error);
-                _this.$store.commit('httpRequest', false);
-                _this.$toastr('error', 'Whoops..!! something went wrong', 'Error');
-            });
-        },
-        httpReq: function (url, method = 'get', params = {}, data = {}, callback = false) {
-            const _this = this;
-            _this.axios({
-                method: method,
-                url: url,
-                params: params,
-                data: data
-            }).then(response => {
-                if (parseInt(response.data.status) === 5001) {
-                    _this.$toastr(response.data.type, response.data.message, response.data.type);
-                    _this.$router.push({path: '/admin/dashboard'});
-                    return;
-                }
-                if (parseInt(response.data.status) === 5000) {
-                    _this.$toastr(response.data.type, response.data.message, response.data.type);
-                    return;
-                }
-
-                if (parseInt(response.data.status) === 2000) {
-                    if (response.data.message) {
-                        _this.$toastr('success', response.data.message, 'Success');
-                    }
-                    if (typeof callback === 'function') {
-                        callback(response.data.result);
-                    } else {
-                        _this.$store.commit('requiredData', response.data.result)
-                    }
-                } else {
-                    _this.$toastr('success', response.data.message, 'Success');
-                }
-
-            }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                _this.$toastr('error', 'Whoops..!! something went wrong', 'Error');
-            });
-        },
-        getData: function (url, method = 'get', params = {}, data = {}, callback = false) {
-            const _this = this;
-            _this.axios({
-                method: method,
-                url: url,
-                params: params,
-                data: data
-            }).then(response => {
-                if (parseInt(response.data.status) === 5001) {
-                    _this.$toastr(response.data.type, response.data.message, response.data.type);
-                    _this.$router.push({path: '/admin/dashboard'});
-                    return;
-                }
-                if (parseInt(response.data.status) === 5000) {
-                    _this.$toastr(response.data.type, response.data.message, response.data.type);
-                    return;
-                }
-
-                if (parseInt(response.data.status) === 2000) {
-                    if (response.data.message) {
-                        _this.$toastr('success', response.data.message, 'Success');
-                    }
-                    if (typeof callback === 'function') {
-                        callback(response.data.result);
-                    } else {
-                        _this.$store.commit('requiredData', response.data.result)
-                    }
-                } else {
-                    _this.$toastr('warning', response.data.message, 'Warning');
-                }
-
-            }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                _this.$toastr('error', 'Whoops..!! something went wrong', 'Error');
-            });
-        },
-        getDataList: function (page = 1, callback = false) {
-            const _this = this;
+            page = Number.isInteger(page) ? page : 1;
             _this.$store.commit('currentPagination', page);
-
-            var data_params = Object.assign(this.filter, _this.formFilter, {page: page});
-            this.$store.commit('httpRequest', true);
-            _this.axios({method: "get", url: _this.urlGenerate(), params: data_params})
+            const params = Object.assign({}, this.filter, _this.formFilter, { page });
+            _this.$store.commit('httpRequest', true);
+            _this.axios({ method: 'get', url: _this.urlGenerate(), params })
                 .then(function (response) {
-                    var retData = response.data;
+                    const body = response.data;
                     _this.$store.commit('httpRequest', false);
-
-                    if (parseInt(retData.status) === 5001) {
-                        _this.$toastr('error', retData.message, 'Error');
-                        _this.$router.push({path: '/admin/dashboard'});
-                        return;
-                    }
-                    if (parseInt(retData.status) === 5000) {
-                        _this.$toastr('error', retData.message, 'Error');
-                        return;
-                    }
-                    if (parseInt(retData.status) === 4004) {
-                        _this.$toastr('error', retData.message, 'Error');
-                        return;
-                    }
-                    if (parseInt(retData.status) === 2000) {
-                        _this.$store.commit('dataList', retData.result)
+                    if (parseInt(body.status) === 2000) {
+                        _this.$store.commit('dataList', body.result);
                     } else {
-                        _this.$store.state.DataList = [];
-                        _this.$toastr(retData.type, retData.message, 'Warning');
+                        _this.$store.commit('dataList', { data: [] });
+                        _this.$toastr('error', body.message || 'The list could not be loaded.', 'Error');
                     }
-                    if (typeof callback === 'function') {
-                        callback(retData.result);
-                    }
-                }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                var retData = error.response.data;
-                _this.$toastr('error', retData.message, 'Error');
+                    if (typeof callback === 'function') callback(body.result);
+                })
+                .catch(function (error) {
+                    _this.$store.commit('httpRequest', false);
+                    _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
+                });
+        },
+
+        getGeneralData(keys, callback = false) {
+            const _this = this;
+            _this.axios.post(_this.urlGenerate('api/general'), keys).then((response) => {
+                Object.keys(response.data.result || {}).forEach((key) => {
+                    _this.$set(_this.requiredData, key, response.data.result[key]);
+                });
+                if (typeof callback === 'function') callback(response.data.result);
+            }).catch(function (error) {
+                _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
             });
         },
-        changeStatus: function (obj = {}, showMessage = true) {
+
+        getData(url, method = 'get', params = {}, data = {}, callback = false) {
             const _this = this;
-            this.$store.commit('httpRequest', true);
-            _this.axios({method: "post", url: `${_this.urlGenerate()}/status`, data: obj})
+            _this.axios({ method, url, params, data }).then((response) => {
+                const body = response.data;
+                if (parseInt(body.status) === 2000) {
+                    if (body.message) _this.$toastr('success', body.message, 'Done');
+                    if (typeof callback === 'function') callback(body.result);
+                    else _this.$store.commit('requiredData', body.result);
+                } else {
+                    _this.$toastr('warning', body.message, 'Warning');
+                }
+            }).catch(function (error) {
+                _this.$store.commit('httpRequest', false);
+                _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
+            });
+        },
+
+        changeStatus(obj = {}, showMessage = true) {
+            const _this = this;
+            _this.$store.commit('httpRequest', true);
+            _this.axios({ method: 'post', url: `${_this.urlGenerate()}/status`, data: obj })
                 .then(function (response) {
                     _this.$store.commit('httpRequest', false);
                     _this.getDataList(_this.currentPagination);
-                    if (showMessage) {
-                        _this.$toastr(response.data.result, response.data.message, 'Success');
-                    }
-                }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                if (showMessage) {
-                    var retData = error.response.data;
-                    _this.$toastr('error', retData.message, 'Error');
-                }
-            });
+                    if (showMessage) _this.$toastr('success', response.data.message, 'Done');
+                })
+                .catch(function (error) {
+                    _this.$store.commit('httpRequest', false);
+                    if (showMessage) _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
+                });
         },
-        onFileSelect(event, callback = false) {
+
+        submitForm(formData, model = true, callback = false, checkValidation = true, url = false) {
             const _this = this;
-            var formData = new FormData();
-            var imagefile = event.target.files[0];
-            formData.append("file", imagefile);
+            const isEdit = _this.formType === 2;
+            const URL = isEdit ? `${_this.urlGenerate(url)}/${_this.updateId}` : _this.urlGenerate(url);
+            const pageNumber = isEdit ? _this.currentPagination : 1;
 
-            _this.axios.post(_this.urlGenerate('api/file_upload'), formData)
-                .then(response => {
-                    if (parseInt(response.data.status) === 2000) {
-                        if (typeof callback === 'function') {
-                            return response.data.result;
-                        }
-                    } else {
-                        _this.$toastr('error', response.data.message, 'Error');
-                    }
-                }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                _this.$toastr('error', 'Something wrong', 'Error');
-            });
-        },
-        submitForm: function (formData, model = true, callback = false, checkValidation = true, url = false, object = {}, redirectTo = false) {
-            const _this = this;
-            var URL, method;
-            var pageNumber = 1;
-            if (_this.formType === 2) {
-                pageNumber = _this.currentPagination;
-                URL = `${_this.urlGenerate(url)}/${_this.updateId}`;
-                method = 'put';
-            } else {
-                URL = _this.urlGenerate(url);
-                method = 'post';
-            }
-            this.$validator.validate().then(valid => {
-                if (valid || !checkValidation) {
-                    this.$validator.errors.clear();
-                    _this.$store.state.httpRequest = true;
-                    _this.axios({method: method, url: URL, data: formData, params: object}).then(function (response) {
-                        var retData = response.data;
-                        _this.$store.state.httpRequest = false;
-
-                        if (parseInt(retData.status) === 5001) {
-                            _this.$toastr('error', retData.message, 'Error');
-                            // _this.$router.push({path:'/admin/dashboard'});
-                            return;
-                        }
-
-                        if (parseInt(retData.status) === 2000) {
-                            if (model) {
-                                _this.$store.state.currentFromModel = 1;
-                                _this.closeModal(model);
-                                _this.getDataList(pageNumber);
-                                _this.resetForm(formData);
-                            }
-                            _this.$toastr('success', retData.message, 'Success');
-                            if (redirectTo) {
-                                _this.$router.push({path: redirectTo});
-                            }
-                        }
-                        if (parseInt(retData.status) === 3000) {
-                            _this.$toastr('warning', retData.message, 'Warning');
-                            _this.assignValidationError(retData.result);
-                        }
-                        if (parseInt(retData.status) === 5000) {
-                            _this.$toastr('error', retData.message, 'Error');
-                        }
-
-                        if (typeof callback == 'function') {
-                            callback(response.data);
-                        }
-                    }).catch(function (error) {
-                        _this.$store.commit('httpRequest', false);
-                        _this.$toastr('error', 'Something Wrong', 'Error');
-                    });
-                }else{
-                    console.log(_this.errors);
-                }
-            });
-        },
-        deleteInformation: function (index, ID, url = false, callback = false, callDataList = true) {
-            const _this = this;
-            this.$swal({
-                title: 'Are you sure..??',
-                text: 'Data will be delete Permanently??',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa fa-check"></i>',
-                cancelButtonText: '<i class="fa fa-close"></i>',
-                showCloseButton: true,
-            }).then((result) => {
-                if (result.value) {
-                    var URL = !url ? `${_this.urlGenerate()}/${ID}` : url;
-                    _this.axios.delete(URL)
-                        .then(function (response) {
-                            var retData = response.data;
-                            _this.$store.commit('httpRequest', false);
-                            if (parseInt(retData.status) === 2000) {
-                                _this.$toastr('success', retData.message, 'Success');
-                                if (callDataList) {
-                                    _this.getDataList();
-                                }
-                                if (typeof callback == 'function') {
-                                    callback(true);
-                                }
-                            } else {
-                                _this.$toastr('warning', retData.message, 'Warning');
-                            }
-                        }).catch(function (error) {
-                        _this.$store.commit('httpRequest', false);
-                        _this.$toastr('error', 'Something Wrong', 'Error');
-                    });
-                }
-            });
-        },
-        getConfigurations: function (callback = null) {
-            const _this = this;
-            this.$store.commit('httpRequest', true);
-            var Url = _this.urlGenerate('api/configurations');
-            _this.axios({
-                method: "post",
-                url: Url,
-                data: {}
-            }).then(function (response) {
-                _this.$store.commit('httpRequest', false);
-                if (parseInt(response.data.status) === 2000) {
-                    var Configurations = response.data.result;
-                    _this.$store.commit('Config', response.data.result);
-                    _this.$store.commit('allMenus', Configurations.menus);
-
-                    if (typeof callback === 'function') {
-                        callback(response.data.result);
-                    }
-                }
-            }).catch(function (error) {
-                _this.$store.commit('httpRequest', false);
-                var retData = error.response.data;
-                _this.$toastr('error', retData.message, 'Error');
-            });
-        },
-        uploadFile: function (event, imageObject = {}, dataModel = null, callback = false, url = false) {
-            const _this = this;
-            const trigger = $(event.target);
-            let input = event.target.files[0];
-            let formData = new FormData();
-            formData.append("type", imageObject.type);
-            formData.append("file_type", 1);
-            formData.append("file", input);
-            const URL = url ? _this.urlGenerate(url) : _this.urlGenerate('api/file_upload');
-            _this.$store.commit('httpRequest', true);
-            _this.$store.commit('uploadProgress', 0);
-
-            const config = {
-                onUploadProgress: function (progressEvent) {
-                    var percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    _this.$store.commit('uploadProgress', percentCompleted);
-                }
-            };
-
-            _this.axios.post(URL, formData, config)
-                .then((response) => {
+            this.$validator.validate().then((valid) => {
+                if (!valid && checkValidation) return;
+                this.$validator.errors.clear();
+                _this.$store.commit('httpRequest', true);
+                _this.axios({ method: isEdit ? 'put' : 'post', url: URL, data: formData }).then(function (response) {
+                    const body = response.data;
                     _this.$store.commit('httpRequest', false);
 
-                    if (typeof callback === 'function') {
-                        callback(response.data);
+                    if (parseInt(body.status) === 2000) {
+                        if (model) {
+                            _this.closeModal(model);
+                            _this.getDataList(pageNumber);
+                        }
+                        _this.$toastr('success', body.message || 'Saved.', 'Done');
+                    } else if (parseInt(body.status) === 3000) {
+                        _this.$toastr('warning', body.message, 'Check the form');
+                        _this.assignValidationError(body.result);
+                    } else {
+                        _this.$toastr('error', body.message || 'Not saved.', 'Error');
                     }
-
-                    if (parseInt(response.data.status) === 2000) {
-                        this.$set(imageObject, dataModel, response.data.result);
-                    } else if (parseInt(response.data.status) === 3000) {
-                        setTimeout(function () {
-                            _this.$store.commit('uploadProgress', 0);
-                        }, 1000);
-                        _this.$toastr('error', response.data.message, 'Error');
+                    if (typeof callback === 'function') callback(body);
+                }).catch(function (error) {
+                    _this.$store.commit('httpRequest', false);
+                    const res = error.response;
+                    if (res && res.status === 422 && res.data && res.data.errors) {
+                        _this.assignValidationError(res.data.errors);
                     }
-                }).catch(function () {
-                _this.$store.commit('httpRequest', false);
+                    _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
+                });
             });
         },
-        UploadImage: function (event, imageObject, dataModel = null, callback = false) {
+
+        deleteInformation(index, id, url = false, callback = false, callDataList = true) {
             const _this = this;
-            const trigger = $(event.target);
-            let input = event.target.files[0];
-            let formData = new FormData();
-            formData.append("type", 1);
-            formData.append("file_type", 1);
-            formData.append("file", input);
-            const URL = _this.urlGenerate('api/file_upload');
-            _this.$store.commit('httpRequest', true);
-            _this.axios.post(URL, formData).then((response) => {
-                _this.$store.commit('httpRequest', false);
-                if (parseInt(response.data.status) === 2000) {
-                    this.$set(imageObject, dataModel, response.data.result);
-                    if (typeof callback === 'function') {
-                        callback(true);
+            _this.confirmBox(function (ok) {
+                if (!ok) return;
+                _this.axios.delete(url || `${_this.urlGenerate()}/${id}`).then(function (response) {
+                    const body = response.data;
+                    if (parseInt(body.status) === 2000) {
+                        _this.$toastr('success', body.message || 'Deleted.', 'Done');
+                        if (callDataList) _this.getDataList(_this.currentPagination || 1);
+                        if (typeof callback === 'function') callback(true);
+                    } else {
+                        _this.$toastr('warning', body.message, 'Warning');
                     }
-                } else if (parseInt(response.data.status) === 3000) {
-                    _this.$toastr('error', response.data.message, 'Error');
+                }).catch(function (error) {
+                    _this.$toastr('error', _this.httpErrorMessage(error), 'Error');
+                });
+            }, 'Delete this item?', 'This cannot be undone.');
+        },
+
+        getConfigurations(callback = null) {
+            const _this = this;
+            _this.axios.post(_this.urlGenerate('api/configurations'), {}).then(function (response) {
+                if (parseInt(response.data.status) === 2000) {
+                    _this.$store.commit('Config', response.data.result);
+                    _this.$store.commit('allMenus', response.data.result.menus);
+                    if (typeof callback === 'function') callback(response.data.result);
                 }
-            }).catch(function () {
-                _this.$store.commit('httpRequest', false);
+            }).catch(function (error) {
+                _this.$toastr('error', _this.httpErrorMessage(error, 'The menu could not be loaded.'), 'Error');
             });
         },
     },
-}
+};

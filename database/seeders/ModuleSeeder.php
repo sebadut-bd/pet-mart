@@ -20,97 +20,48 @@ class ModuleSeeder extends Seeder
         $modules = [
             [
                 'display_name' => 'Dashboard',
-                'name' => 'dashboard',
-                'link' => '/admin/dashboard',
-                'permissions' => ['view', 'user_view', 'invoice_view'],
-                'icon' => 'fa-tachometer-alt'
+                'name'         => 'dashboard',
+                'link'         => '/admin/dashboard',
+                'icon'         => 'fa-gauge-high',
+                'permissions'  => ['view'],
             ],
             [
                 'display_name' => 'Marketplace',
-                'name' => 'marketplace',
-                'link' => '#',
-                'permissions' => ['show'],
-                'icon' => 'fa-store',
-                'submenus' => [
-                    [
-                        'display_name' => 'Product Approval Queue',
-                        'name' => 'moderation',
-                        'link' => '/admin/marketplace/moderation',
-                        'permissions' => ['view', 'add', 'update', 'delete', 'approve', 'reject'],
-                    ],
-                    [
-                        'display_name' => 'Categories & Specs',
-                        'name' => 'category',
-                        'link' => '/admin/marketplace/categories',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ],
-                    [
-                        'display_name' => 'Users & Sellers',
-                        'name' => 'user',
-                        'link' => '/admin/marketplace/users',
-                        'permissions' => ['add', 'update', 'delete', 'view', 'verify'],
-                    ],
-                    [
-                        'display_name' => 'Homepage Banners',
-                        'name' => 'banner',
-                        'link' => '/admin/marketplace/banners',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ],
-                    [
-                        'display_name' => 'Abuse Reports Queue',
-                        'name' => 'report',
-                        'link' => '/admin/marketplace/reports',
-                        'permissions' => ['view', 'resolve', 'dismiss'],
-                    ],
-                ]
+                'name'         => 'marketplace',
+                'link'         => '#',
+                'icon'         => 'fa-store',
+                'permissions'  => ['show'],
+                'submenus'     => [
+                    ['display_name' => 'Listing moderation', 'name' => 'moderation', 'link' => '/admin/marketplace/moderation', 'icon' => 'fa-clipboard-check', 'permissions' => ['view', 'approve', 'reject', 'feature']],
+                    ['display_name' => 'Reports', 'name' => 'report', 'link' => '/admin/marketplace/reports', 'icon' => 'fa-flag', 'permissions' => ['view', 'resolve', 'dismiss']],
+                    ['display_name' => 'Contact messages', 'name' => 'contact_message', 'link' => '/admin/marketplace/messages', 'icon' => 'fa-envelope-open-text', 'permissions' => ['view', 'update', 'delete']],
+                    ['display_name' => 'Members', 'name' => 'user', 'link' => '/admin/marketplace/members', 'icon' => 'fa-users', 'permissions' => ['view', 'verify', 'update', 'delete']],
+                    ['display_name' => 'Categories', 'name' => 'category', 'link' => '/admin/marketplace/categories', 'icon' => 'fa-layer-group', 'permissions' => ['view', 'add', 'update', 'delete']],
+                    ['display_name' => 'Banners', 'name' => 'banner', 'link' => '/admin/marketplace/banners', 'icon' => 'fa-image', 'permissions' => ['view', 'add', 'update', 'delete']],
+                ],
             ],
             [
-                'display_name' => 'RBAC & Accesses',
-                'name' => 'accesses',
-                'link' => '#',
-                'permissions' => ['show'],
-                'icon' => 'fa-shield-alt',
-                'submenus' => [
-                    [
-                        'display_name' => 'Modules',
-                        'name' => 'module',
-                        'link' => '/admin/module',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ],
-                    [
-                        'display_name' => 'Roles',
-                        'name' => 'role',
-                        'link' => '/admin/role',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ],
-                    [
-                        'display_name' => 'Role Permissions',
-                        'name' => 'role_permission',
-                        'link' => '/admin/role_permissions',
-                        'permissions' => ['add', 'delete'],
-                    ],
-                ]
+                'display_name' => 'Access control',
+                'name'         => 'accesses',
+                'link'         => '#',
+                'icon'         => 'fa-shield-halved',
+                'permissions'  => ['show'],
+                'submenus'     => [
+                    ['display_name' => 'Users', 'name' => 'admin_user', 'link' => '/admin/users', 'icon' => 'fa-user-gear', 'permissions' => ['view', 'add', 'update', 'delete']],
+                    ['display_name' => 'Roles', 'name' => 'role', 'link' => '/admin/role', 'icon' => 'fa-user-shield', 'permissions' => ['view', 'add', 'update', 'delete']],
+                    ['display_name' => 'Role permissions', 'name' => 'role_permission', 'link' => '/admin/role_permissions', 'icon' => 'fa-key', 'permissions' => ['add', 'delete']],
+                    ['display_name' => 'Modules', 'name' => 'module', 'link' => '/admin/module', 'icon' => 'fa-cubes', 'permissions' => ['view', 'add', 'update', 'delete']],
+                ],
             ],
             [
-                'display_name' => 'Configurations',
-                'name' => 'setting',
-                'link' => '#',
-                'permissions' => ['show'],
-                'icon' => 'fa-cogs',
-                'submenus' => [
-                    [
-                        'display_name' => 'General Settings',
-                        'name' => 'general_setting',
-                        'link' => '/admin/general_setting',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ],
-                    [
-                        'display_name' => 'Settings',
-                        'name' => 'configuration',
-                        'link' => '/admin/configurations',
-                        'permissions' => ['add', 'update', 'delete', 'view'],
-                    ]
-                ]
+                'display_name' => 'Settings',
+                'name'         => 'setting',
+                'link'         => '#',
+                'icon'         => 'fa-gear',
+                'permissions'  => ['show'],
+                'submenus'     => [
+                    ['display_name' => 'General settings', 'name' => 'general_setting', 'link' => '/admin/general_setting', 'icon' => 'fa-sliders', 'permissions' => ['view', 'update']],
+                ],
             ],
         ];
 

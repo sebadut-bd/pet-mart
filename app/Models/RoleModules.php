@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\ModelScopes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
 
 class RoleModules extends Model
 {
-    use ModelScopes;
 
     use HasFactory;
     protected $table = 'roles_modules';

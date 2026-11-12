@@ -5,61 +5,60 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
     public function getProfile(Request $request): JsonResponse
     {
-        $user = $request->user() ?? \App\Models\User::first();
-
-        $userData = [
-            'id'        => $user->id,
-            'name'      => $user->name,
-            'username'  => $user->name,
-            'email'     => $user->email,
-            'image'     => $user->avatar ?? null,
-            'layout'    => 'vertical',
-        ];
-
-        return response()->json([
-            'status' => 2000,
-            'data'   => [$userData],
-            'result' => $userData,
-        ]);
+        return response()->json(['status' => 2000, 'result' => $this->present($request->user())]);
     }
 
     public function updateProfile(Request $request): JsonResponse
     {
-        $user = $request->user() ?? \App\Models\User::first();
+        $user = $request->user();
 
-        $request->validate([
-            'email' => 'required|email|unique:users,email,' . $user->id,
+        $data = $request->validate([
+            'name'             => ['required', 'string', 'min:2', 'max:100'],
+            'email'            => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
+            'password'         => ['nullable', 'string', 'min:8', 'max:100', 'confirmed'],
+            'current_password' => ['required_with:password', 'nullable', 'string'],
         ]);
 
-        $data = [
-            'email' => $request->email,
-        ];
-
-        if ($request->filled('username') || $request->filled('name')) {
-            $data['name'] = $request->username ?? $request->name;
-        }
-
-        if ($request->filled('password')) {
-            if ($request->filled('old_password') && !Hash::check($request->old_password, $user->password)) {
+        if (! empty($data['password'])) {
+            if (! Hash::check((string) $data['current_password'], $user->password)) {
                 return response()->json([
-                    'status'  => 400,
-                    'message' => 'Old password does not match.',
-                ], 400);
+                    'status'  => 3000,
+                    'message' => 'Your current password is incorrect.',
+                    'result'  => ['current_password' => ['Your current password is incorrect.']],
+                ], 422);
             }
-            $data['password'] = Hash::make($request->password);
+            $user->password = Hash::make($data['password']);
         }
 
-        $user->update($data);
+        $user->name = $data['name'];
+        $user->email = $data['email'];
+        $user->save();
+
+        if (! empty($data['password'])) {
+            $user->tokens()->delete();
+            auth()->logoutOtherDevices($data['password']);
+        }
 
         return response()->json([
             'status'  => 2000,
-            'message' => 'Profile updated successfully.',
-            'result'  => $user,
+            'message' => 'Profile updated.',
+            'result'  => $this->present($user),
         ]);
+    }
+
+    private function present($user): array
+    {
+        return [
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+        ];
     }
 }

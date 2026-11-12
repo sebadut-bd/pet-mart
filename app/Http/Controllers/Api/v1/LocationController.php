@@ -8,9 +8,6 @@ use Illuminate\Http\JsonResponse;
 
 class LocationController extends Controller
 {
-    /**
-     * Get hierarchy of divisions, districts, and areas.
-     */
     public function index(): JsonResponse
     {
         $divisions = Location::where('type', 'division')

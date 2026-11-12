@@ -37,10 +37,6 @@ class Category extends Model
         return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order');
     }
 
-    public function subCategories(): HasMany
-    {
-        return $this->hasMany(SubCategory::class, 'category_id')->orderBy('sort_order');
-    }
 
     public function attributes(): HasMany
     {

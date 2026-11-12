@@ -1,142 +1,141 @@
 <?php
 
+use App\Http\Controllers\Api\v1\Admin\BannerAdminController;
 use App\Http\Controllers\Api\v1\Admin\CategoryAdminController;
+use App\Http\Controllers\Api\v1\Admin\ContactMessageAdminController;
 use App\Http\Controllers\Api\v1\Admin\DashboardAdminController;
 use App\Http\Controllers\Api\v1\Admin\ModerationController;
 use App\Http\Controllers\Api\v1\Admin\ReportAdminController;
-use App\Http\Controllers\Api\v1\Admin\UserAdminController;
+use App\Http\Controllers\Api\v1\Admin\UploadAdminController;
+use App\Http\Controllers\Api\v1\Admin\AdminUserController;
+use App\Http\Controllers\Api\v1\Admin\MemberAdminController;
 use App\Http\Controllers\Api\v1\AuthController;
+use App\Http\Controllers\Api\v1\BannerController;
 use App\Http\Controllers\Api\v1\CategoryController;
+use App\Http\Controllers\Api\v1\ContactController;
 use App\Http\Controllers\Api\v1\InquiryController;
 use App\Http\Controllers\Api\v1\LocationController;
 use App\Http\Controllers\Api\v1\ProductController;
 use App\Http\Controllers\Api\v1\ProductReportController;
-use App\Http\Controllers\Api\v1\ReviewController;
+use App\Http\Controllers\Api\v1\SettingController;
 use App\Http\Controllers\Api\v1\UploadController;
 use App\Http\Controllers\Api\v1\WishlistController;
+use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\GeneralController;
+use App\Http\Controllers\GeneralSettingController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RolePermissionController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Root API Fallback / Legacy Endpoints
-|--------------------------------------------------------------------------
-*/
-Route::post('/general', [App\Http\Controllers\GeneralController::class, 'getGeneralData']);
-Route::post('/configurations', [App\Http\Controllers\ConfigurationController::class, 'getConfigurations']);
-Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'getProfile']);
-Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'updateProfile']);
-Route::apiResource('/modules', App\Http\Controllers\ModuleController::class);
-Route::apiResource('/roles', App\Http\Controllers\RoleController::class);
-Route::apiResource('/role_permissions', App\Http\Controllers\RolePermissionController::class);
+Route::middleware(['web', 'admin'])->group(function () {
+    Route::post('/configurations', [ConfigurationController::class, 'getConfigurations']);
+    Route::post('/general', [GeneralController::class, 'getGeneralData']);
 
-/*
-|--------------------------------------------------------------------------
-| Admin panel: General Settings (session login + CSRF, admins only)
-|--------------------------------------------------------------------------
-| The Vue admin runs on the same origin, so the `web` group gives it the
-| session and CSRF check; `admin` rejects anyone who is not an admin.
-*/
-Route::middleware(['web', 'admin'])->prefix('general_setting')->group(function () {
-    Route::get('/', [App\Http\Controllers\GeneralSettingController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\GeneralSettingController::class, 'update']);
-    Route::post('/{key}/image', [App\Http\Controllers\GeneralSettingController::class, 'uploadImage'])
-        ->where('key', '[a-z0-9_]+')->middleware('throttle:20,1');
-    Route::delete('/{key}/image', [App\Http\Controllers\GeneralSettingController::class, 'removeImage'])
-        ->where('key', '[a-z0-9_]+');
+    Route::get('/profile', [ProfileController::class, 'getProfile']);
+    Route::post('/profile', [ProfileController::class, 'updateProfile'])->middleware('throttle:10,1');
+
+    Route::apiResource('/modules', ModuleController::class);
+    Route::apiResource('/roles', RoleController::class);
+    Route::apiResource('/role_permissions', RolePermissionController::class);
+
+    Route::prefix('general_setting')->group(function () {
+        Route::get('/', [GeneralSettingController::class, 'index']);
+        Route::post('/', [GeneralSettingController::class, 'update']);
+        Route::post('/{key}/image', [GeneralSettingController::class, 'uploadImage'])
+            ->where('key', '[a-z0-9_]+')->middleware('throttle:20,1');
+        Route::delete('/{key}/image', [GeneralSettingController::class, 'removeImage'])
+            ->where('key', '[a-z0-9_]+');
+    });
+
+    Route::prefix('v1/admin')->group(function () {
+        Route::get('/dashboard-stats', [DashboardAdminController::class, 'stats']);
+
+        Route::post('/uploads/images', [UploadAdminController::class, 'image'])->middleware('throttle:30,1');
+
+        Route::get('/moderation', [ModerationController::class, 'index']);
+        Route::post('/moderation/{id}/approve', [ModerationController::class, 'approve'])->whereNumber('id');
+        Route::post('/moderation/{id}/reject', [ModerationController::class, 'reject'])->whereNumber('id');
+        Route::post('/moderation/{id}/feature', [ModerationController::class, 'toggleFeatured'])->whereNumber('id');
+
+        Route::get('/categories', [CategoryAdminController::class, 'index']);
+        Route::post('/categories', [CategoryAdminController::class, 'store']);
+        Route::put('/categories/{id}', [CategoryAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/categories/{id}', [CategoryAdminController::class, 'destroy'])->whereNumber('id');
+        Route::post('/categories/{id}/attributes', [CategoryAdminController::class, 'storeAttribute'])->whereNumber('id');
+        Route::put('/attributes/{id}', [CategoryAdminController::class, 'updateAttribute'])->whereNumber('id');
+        Route::delete('/attributes/{id}', [CategoryAdminController::class, 'destroyAttribute'])->whereNumber('id');
+
+        Route::get('/members', [MemberAdminController::class, 'index']);
+        Route::put('/members/{id}', [MemberAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/members/{id}', [MemberAdminController::class, 'destroy'])->whereNumber('id');
+        Route::post('/members/{id}/toggle-verification', [MemberAdminController::class, 'toggleVerification'])->whereNumber('id');
+        Route::post('/members/{id}/toggle-status', [MemberAdminController::class, 'toggleStatus'])->whereNumber('id');
+
+        Route::get('/users', [AdminUserController::class, 'index']);
+        Route::post('/users', [AdminUserController::class, 'store']);
+        Route::put('/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');
+        Route::post('/users/{id}/toggle-status', [AdminUserController::class, 'toggleStatus'])->whereNumber('id');
+
+        Route::get('/reports', [ReportAdminController::class, 'index']);
+        Route::post('/reports/{id}/resolve', [ReportAdminController::class, 'resolve'])->whereNumber('id');
+        Route::post('/reports/{id}/dismiss', [ReportAdminController::class, 'dismiss'])->whereNumber('id');
+
+        Route::get('/banners', [BannerAdminController::class, 'index']);
+        Route::post('/banners', [BannerAdminController::class, 'store']);
+        Route::put('/banners/{id}', [BannerAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/banners/{id}', [BannerAdminController::class, 'destroy'])->whereNumber('id');
+
+        Route::get('/contact-messages', [ContactMessageAdminController::class, 'index']);
+        Route::put('/contact-messages/{id}', [ContactMessageAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/contact-messages/{id}', [ContactMessageAdminController::class, 'destroy'])->whereNumber('id');
+    });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Version 1 API Routes
-|--------------------------------------------------------------------------
-*/
 Route::prefix('v1')->group(function () {
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::post('/auth/register', [AuthController::class, 'register']);
+        Route::post('/auth/login', [AuthController::class, 'login']);
+    });
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+        Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    });
 
-    // --- Authentication ---
-    Route::post('/auth/register', [AuthController::class, 'register']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-
-    // --- Public Marketplace Endpoints ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
-
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{identifier}', [ProductController::class, 'show']);
-
     Route::get('/locations', [LocationController::class, 'index']);
+    Route::get('/settings', [SettingController::class, 'index']);
+    Route::get('/banners', [BannerController::class, 'index']);
+    Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:3,10');
 
-    // Public site settings (homepage banner, contact info…)
-    Route::get('/settings', [\App\Http\Controllers\Api\v1\SettingController::class, 'index']);
-
-    // --- Protected User/Seller Endpoints ---
     Route::middleware('auth:sanctum')->group(function () {
-        // User Profile
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::put('/auth/me', [AuthController::class, 'updateProfile']);
+        Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:5,1');
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-        // Listing photo upload (device / camera). Rate limited: 30 per minute per user.
         Route::post('/uploads/images', [UploadController::class, 'image'])->middleware('throttle:30,1');
 
-        // Seller Listings Management
-        Route::post('/products', [ProductController::class, 'store']);
+        Route::post('/products', [ProductController::class, 'store'])->middleware('throttle:10,1');
+        Route::put('/products/{id}', [ProductController::class, 'update'])->whereNumber('id');
         Route::get('/my-listings', [ProductController::class, 'myListings']);
-        Route::post('/products/{id}/mark-sold', [ProductController::class, 'markAsSold']);
-        Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+        Route::post('/products/{id}/mark-sold', [ProductController::class, 'markAsSold'])->whereNumber('id');
+        Route::delete('/products/{id}', [ProductController::class, 'destroy'])->whereNumber('id');
 
-        // Wishlist
         Route::get('/wishlist', [WishlistController::class, 'index']);
         Route::post('/wishlist/toggle', [WishlistController::class, 'toggle']);
 
-        // Inquiries & Messages
         Route::get('/inquiries', [InquiryController::class, 'index']);
-        Route::post('/inquiries', [InquiryController::class, 'store']);
+        Route::post('/inquiries', [InquiryController::class, 'store'])->middleware('throttle:10,1');
+        Route::post('/inquiries/{id}/reply', [InquiryController::class, 'reply'])->whereNumber('id')->middleware('throttle:20,1');
+        Route::post('/inquiries/{id}/read', [InquiryController::class, 'markRead'])->whereNumber('id');
 
-        // Reviews & Rating
-        Route::post('/reviews', [ReviewController::class, 'store']);
-
-        // Report Listing
-        Route::post('/products/{id}/report', [ProductReportController::class, 'store']);
+        Route::post('/products/{id}/report', [ProductReportController::class, 'store'])->whereNumber('id')->middleware('throttle:10,1');
     });
-
-    // --- Admin Panel Endpoints ---
-    Route::prefix('admin')->group(function () {
-        Route::get('/dashboard-stats', [DashboardAdminController::class, 'stats']);
-
-        // Moderation Queue
-        Route::get('/moderation', [ModerationController::class, 'index']);
-        Route::post('/moderation/{id}/approve', [ModerationController::class, 'approve']);
-        Route::post('/moderation/{id}/reject', [ModerationController::class, 'reject']);
-
-        // Category Management
-        Route::get('/categories', [CategoryAdminController::class, 'index']);
-        Route::post('/categories', [CategoryAdminController::class, 'store']);
-        Route::put('/categories/{id}', [CategoryAdminController::class, 'update']);
-        Route::delete('/categories/{id}', [CategoryAdminController::class, 'destroy']);
-        Route::post('/categories/{id}/attributes', [CategoryAdminController::class, 'storeAttribute']);
-
-        // User Management & Verification
-        Route::get('/users', [UserAdminController::class, 'index']);
-        Route::post('/users/{id}/toggle-verification', [UserAdminController::class, 'toggleVerification']);
-        Route::post('/users/{id}/toggle-status', [UserAdminController::class, 'toggleStatus']);
-
-        // Reports Queue
-        Route::get('/reports', [ReportAdminController::class, 'index']);
-        Route::post('/reports/{id}/resolve', [ReportAdminController::class, 'resolve']);
-        Route::post('/reports/{id}/dismiss', [ReportAdminController::class, 'dismiss']);
-
-        // Banner Management
-        Route::get('/banners', [\App\Http\Controllers\Api\v1\Admin\BannerAdminController::class, 'index']);
-        Route::post('/banners', [\App\Http\Controllers\Api\v1\Admin\BannerAdminController::class, 'store']);
-        Route::put('/banners/{id}', [\App\Http\Controllers\Api\v1\Admin\BannerAdminController::class, 'update']);
-        Route::delete('/banners/{id}', [\App\Http\Controllers\Api\v1\Admin\BannerAdminController::class, 'destroy']);
-    });
-
-    // --- Legacy Vue 2 RBAC & Dynamic Menu Endpoints ---
-    Route::post('/general', [App\Http\Controllers\GeneralController::class, 'getGeneralData']);
-    Route::post('/configurations', [App\Http\Controllers\ConfigurationController::class, 'getConfigurations']);
-
-    Route::apiResource('/modules', App\Http\Controllers\ModuleController::class);
-    Route::apiResource('/roles', App\Http\Controllers\RoleController::class);
-    Route::apiResource('/role_permissions', App\Http\Controllers\RolePermissionController::class);
 });

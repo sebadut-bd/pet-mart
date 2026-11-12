@@ -1,302 +1,234 @@
 <template>
-    <div class="page-wrapper">
-        <i v-if="httpRequest" class="fa fa-spin fa-spinner" style="font-size: 2rem; display: block; margin: 3rem auto; text-align: center; color: #10b981;"></i>
-        <div class="page-content" v-else>
-            
-            <!-- Top Header Welcome -->
-            <div class="row mb-4 pb-1">
-                <div class="col-12">
-                    <div class="d-flex align-items-lg-center flex-lg-row flex-column justify-content-between">
+    <div>
+        <div class="pm-page-head">
+            <div>
+                <h2>{{ greeting }}, {{ firstName }}</h2>
+                <p>Here is what is happening on PetMart today.</p>
+            </div>
+            <div class="pm-page-actions">
+                <button type="button" class="btn btn-light" @click="load" :disabled="loading">
+                    <i class="fa-solid fa-rotate" :class="{ 'fa-spin': loading }"></i> Refresh
+                </button>
+                <router-link to="/admin/marketplace/moderation" class="btn btn-primary">
+                    <i class="fa-solid fa-clipboard-check"></i> Review listings
+                    <span v-if="cards.pending_approvals" class="badge bg-white text-success ms-1">{{ cards.pending_approvals }}</span>
+                </router-link>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-6 col-xl-3" v-for="card in statCards" :key="card.label">
+                <stat-card v-bind="card"></stat-card>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-8">
+                <div class="pm-card">
+                    <div class="pm-card-head">
                         <div>
-                            <h3 class="fs-22 fw-bold mb-1">
-                                Welcome, <span class="text-success">{{ showData(Config.user, 'name') || 'Admin' }}</span>
-                            </h3>
-                            <p class="text-muted mb-0">Pet & Animal Marketplace Admin Overview</p>
+                            <h3>Activity</h3>
+                            <p>New listings and new members, last 14 days</p>
                         </div>
-                        <div class="mt-3 mt-lg-0">
-                            <router-link to="/admin/moderation" class="btn btn-emerald me-2">
-                                <i class="fa fa-clock me-1"></i> Moderation Queue ({{ (stats && stats.pending_approvals) || 0 }})
-                            </router-link>
-                            <router-link to="/admin/categories" class="btn btn-outline-secondary">
-                                <i class="fa fa-tags me-1"></i> Manage Categories
-                            </router-link>
+                    </div>
+                    <div class="pm-card-body pt-2">
+                        <apexchart v-if="ready" type="area" height="300" :options="trendOptions" :series="trendSeries"></apexchart>
+                        <div v-else class="placeholder-glow"><span class="placeholder col-12 rounded" style="height: 300px"></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="pm-card">
+                    <div class="pm-card-head">
+                        <div>
+                            <h3>Listings by status</h3>
+                            <p>{{ cards.total_listings || 0 }} listings in total</p>
                         </div>
+                    </div>
+                    <div class="pm-card-body pt-2">
+                        <apexchart v-if="ready && statusTotal" type="donut" height="300" :options="statusOptions" :series="statusSeries"></apexchart>
+                        <div v-else-if="ready" class="pm-empty"><p>No listings yet.</p></div>
+                        <div v-else class="placeholder-glow"><span class="placeholder col-12 rounded" style="height: 300px"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-5">
+                <div class="pm-card">
+                    <div class="pm-card-head">
+                        <div>
+                            <h3>Waiting for review</h3>
+                            <p>Oldest first</p>
+                        </div>
+                        <router-link to="/admin/marketplace/moderation" class="btn btn-sm btn-light">Open queue</router-link>
+                    </div>
+                    <ul class="pm-list" v-if="(stats.pending_queue || []).length">
+                        <li v-for="item in stats.pending_queue" :key="item.id">
+                            <img v-if="item.image" :src="item.image" class="pm-thumb" alt="" loading="lazy">
+                            <span v-else class="pm-thumb"><i class="fa-regular fa-image"></i></span>
+                            <div class="min-w-0 flex-grow-1">
+                                <span class="pm-cell-title">{{ item.title }}</span>
+                                <span class="pm-cell-sub">{{ item.seller }} · {{ item.category }} · {{ timeAgo(item.created_at) }}</span>
+                            </div>
+                            <span class="fw-600 text-nowrap">{{ money(item.price, item.is_free) }}</span>
+                        </li>
+                    </ul>
+                    <div v-else class="pm-empty">
+                        <div class="pm-empty-icon"><i class="fa-solid fa-check"></i></div>
+                        <h4>All caught up</h4>
+                        <p>No listings are waiting for review.</p>
+                    </div>
+                </div>
+
+                <div class="pm-card">
+                    <div class="pm-card-head"><h3>Listings per category</h3></div>
+                    <div class="pm-card-body">
+                        <div v-for="(name, i) in (stats.category_chart ? stats.category_chart.labels : [])" :key="name" class="mb-3">
+                            <div class="d-flex justify-content-between mb-1" style="font-size: 13px">
+                                <span class="fw-600 text-dark">{{ name }}</span>
+                                <span class="text-muted">{{ stats.category_chart.series[i] }}</span>
+                            </div>
+                            <div class="pm-progress"><span :style="{ width: categoryPercent(i) + '%', background: palette[i % palette.length] }"></span></div>
+                        </div>
+                        <p v-if="stats.category_chart && !stats.category_chart.labels.length" class="text-muted mb-0">No categories yet.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Stats Metric Cards -->
-            <div class="row mb-4">
-                
-                <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="icon-shape bg-emerald-light text-emerald rounded-4 me-3">
-                                <i class="fa fa-paw fs-20"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-muted fw-semibold text-uppercase fs-12 mb-1">Active Listings</h6>
-                                <h3 class="fw-bold mb-0 text-dark">{{ (stats && stats.active_listings) || 0 }}</h3>
-                            </div>
+            <div class="col-xl-7">
+                <div class="pm-card">
+                    <div class="pm-card-head">
+                        <div>
+                            <h3>Latest listings</h3>
+                            <p>Most recently submitted</p>
                         </div>
                     </div>
-                </div>
-
-                <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="icon-shape bg-amber-light text-amber rounded-4 me-3">
-                                <i class="fa fa-exclamation-circle fs-20"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-muted fw-semibold text-uppercase fs-12 mb-1">Pending Review</h6>
-                                <h3 class="fw-bold mb-0 text-dark">{{ (stats && stats.pending_approvals) || 0 }}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="icon-shape bg-blue-light text-blue rounded-4 me-3">
-                                <i class="fa fa-users fs-20"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-muted fw-semibold text-uppercase fs-12 mb-1">Total Users</h6>
-                                <h3 class="fw-bold mb-0 text-dark">{{ (stats && stats.total_users) || 0 }}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="icon-shape bg-purple-light text-purple rounded-4 me-3">
-                                <i class="fa fa-user-shield fs-20"></i>
-                            </div>
-                            <div>
-                                <h6 class="text-muted fw-semibold text-uppercase fs-12 mb-1">Verified Breeders</h6>
-                                <h3 class="fw-bold mb-0 text-dark">{{ (stats && stats.verified_sellers) || 0 }}</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Charts Section -->
-            <div class="row mb-4">
-                
-                <!-- Listing Status Breakdown Bar Chart -->
-                <div class="col-lg-7 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">Listing Status Overview</h5>
-                            <span class="badge bg-light text-dark fw-semibold">Live Data</span>
-                        </div>
-                        <div class="card-body px-4">
-                            <apexchart
-                                type="bar"
-                                height="320"
-                                :options="statusChartOptions"
-                                :series="statusChartSeries">
-                            </apexchart>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Category Distribution Donut Chart -->
-                <div class="col-lg-5 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
-                            <h5 class="fw-bold mb-0">Top Categories</h5>
-                        </div>
-                        <div class="card-body px-4 d-flex align-items-center justify-content-center">
-                            <apexchart
-                                type="donut"
-                                height="300"
-                                :options="categoryChartOptions"
-                                :series="categoryChartSeries">
-                            </apexchart>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Recent Listings Activity Table -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
-                            <h5 class="fw-bold mb-0">Recent Pet Listings</h5>
-                            <router-link to="/admin/moderation" class="text-emerald text-decoration-none fw-semibold fs-14">
-                                View Moderation Queue →
-                            </router-link>
-                        </div>
-                        <div class="card-body px-0 pt-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="bg-light">
-                                        <tr>
-                                            <th class="ps-4">Title</th>
-                                            <th>Seller</th>
-                                            <th>Category</th>
-                                            <th>Price</th>
-                                            <th>Status</th>
-                                            <th class="pe-4 text-end">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="item in ((stats && stats.recent_products) || [])" :key="item.id">
-                                            <td class="ps-4 fw-semibold">{{ item.title }}</td>
-                                            <td>{{ item.user ? item.user.name : '—' }}</td>
-                                            <td>
-                                                <span class="badge bg-light text-secondary rounded-pill px-3 py-1">
-                                                    {{ item.category ? item.category.name : '—' }}
-                                                </span>
-                                            </td>
-                                            <td class="fw-bold text-success">
-                                                {{ item.is_free ? 'Free Adoption' : (item.price ? '৳' + Number(item.price).toLocaleString() : 'Negotiable') }}
-                                            </td>
-                                            <td>
-                                                <span :class="getStatusBadgeClass(item.status)">
-                                                    {{ item.status }}
-                                                </span>
-                                            </td>
-                                            <td class="pe-4 text-end">
-                                                <router-link to="/admin/moderation" class="btn btn-sm btn-outline-emerald">
-                                                    Review
-                                                </router-link>
-                                            </td>
-                                        </tr>
-                                        <tr v-if="!stats || !stats.recent_products || stats.recent_products.length === 0">
-                                            <td colspan="6" class="text-center py-4 text-muted">No recent listings available.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table pm-table align-middle mb-0">
+                            <thead>
+                                <tr><th>Listing</th><th>Price</th><th>Status</th><th class="text-end">Submitted</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in (stats.recent_listings || [])" :key="item.id">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-12">
+                                            <img v-if="item.image" :src="item.image" class="pm-thumb" alt="" loading="lazy">
+                                            <span v-else class="pm-thumb"><i class="fa-regular fa-image"></i></span>
+                                            <div class="min-w-0">
+                                                <span class="pm-cell-title" style="max-width: 260px">{{ item.title }}</span>
+                                                <span class="pm-cell-sub">{{ item.seller }} · {{ item.category }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="fw-600 text-nowrap">{{ money(item.price, item.is_free) }}</td>
+                                    <td><span class="pm-badge" :class="statusTone(item.status)">{{ capitalize(item.status) }}</span></td>
+                                    <td class="text-end text-muted text-nowrap">{{ timeAgo(item.created_at) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div v-if="ready && !(stats.recent_listings || []).length" class="pm-empty"><p>No listings yet.</p></div>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </template>
 
 <script>
-import VueApexCharts from "vue-apexcharts";
+import StatCard from "../components/statCard";
+
+const PALETTE = ['#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6', '#6366f1', '#f97316'];
 
 export default {
-    name: "DashboardPage",
-    components: {
-        apexchart: VueApexCharts,
-    },
+    name: "dashboardPage",
+    components: { StatCard },
     data() {
-        return {
-            stats: {
-                active_listings: 0,
-                pending_approvals: 0,
-                total_users: 0,
-                verified_sellers: 0,
-                recent_products: []
-            },
-            statusChartSeries: [{
-                name: 'Listings',
-                data: [0, 0, 0, 0]
-            }],
-            statusChartOptions: {
-                chart: { id: 'status-chart', toolbar: { show: false } },
-                colors: ['#10b981', '#f59e0b', '#64748b', '#ef4444'],
-                plotOptions: { bar: { borderRadius: 8, distributed: true } },
-                xaxis: { categories: ['Active', 'Pending', 'Sold', 'Rejected'] },
-                legend: { show: false }
-            },
-            categoryChartSeries: [1],
-            categoryChartOptions: {
-                chart: { id: 'category-chart' },
-                labels: ['Loading...'],
-                colors: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'],
-                legend: { position: 'bottom' }
-            }
-        };
+        return { stats: {}, loading: false, ready: false, palette: PALETTE };
+    },
+    computed: {
+        cards() {
+            return this.stats.cards || {};
+        },
+        firstName() {
+            const name = (this.Config && this.Config.user && this.Config.user.name) || 'there';
+            return name.split(' ')[0];
+        },
+        greeting() {
+            const h = new Date().getHours();
+            return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+        },
+        statCards() {
+            const c = this.cards;
+            return [
+                { label: 'Pending review', value: c.pending_approvals || 0, icon: 'fa-solid fa-hourglass-half', color: 'var(--pm-c-amber)', hint: 'Listings waiting for a moderator', to: '/admin/marketplace/moderation' },
+                { label: 'Live listings', value: c.active_listings || 0, icon: 'fa-solid fa-circle-check', color: 'var(--pm-c-emerald)', hint: `${c.sold_listings || 0} sold so far` },
+                { label: 'Members', value: c.total_users || 0, icon: 'fa-solid fa-users', color: 'var(--pm-c-violet)', hint: `+${c.new_users_week || 0} this week · ${c.verified_sellers || 0} verified`, to: '/admin/marketplace/members' },
+                { label: 'Needs attention', value: (c.pending_reports || 0) + (c.new_messages || 0), icon: 'fa-solid fa-flag', color: 'var(--pm-c-rose)', hint: `${c.pending_reports || 0} reports · ${c.new_messages || 0} messages`, to: '/admin/marketplace/reports' },
+            ];
+        },
+        trendSeries() {
+            const t = this.stats.trend_chart || { listings: [], users: [] };
+            return [
+                { name: 'New listings', data: t.listings },
+                { name: 'New members', data: t.users },
+            ];
+        },
+        trendOptions() {
+            const t = this.stats.trend_chart || { labels: [] };
+            return {
+                chart: { toolbar: { show: false }, fontFamily: 'Inter, sans-serif', zoom: { enabled: false } },
+                colors: ['#10b981', '#8b5cf6'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 2.5 },
+                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.02, stops: [0, 95] } },
+                grid: { borderColor: '#eef2f6', strokeDashArray: 4, padding: { left: 8, right: 8 } },
+                xaxis: { categories: t.labels, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#64748b', fontSize: '11px' } } },
+                yaxis: { min: 0, forceNiceScale: true, labels: { style: { colors: '#64748b' }, formatter: (v) => Math.round(v) } },
+                legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } },
+                tooltip: { theme: 'light' },
+            };
+        },
+        statusSeries() {
+            return (this.stats.status_chart && this.stats.status_chart.series) || [];
+        },
+        statusTotal() {
+            return this.statusSeries.reduce((a, b) => a + b, 0);
+        },
+        statusOptions() {
+            return {
+                chart: { fontFamily: 'Inter, sans-serif' },
+                labels: (this.stats.status_chart && this.stats.status_chart.labels) || [],
+                colors: ['#10b981', '#f59e0b', '#0ea5e9', '#f43f5e'],
+                legend: { position: 'bottom', fontSize: '12px', markers: { radius: 12 } },
+                dataLabels: { enabled: false },
+                stroke: { width: 3, colors: ['#fff'] },
+                plotOptions: { pie: { donut: { size: '72%', labels: { show: true, total: { show: true, label: 'Total', color: '#64748b', fontSize: '13px' }, value: { fontSize: '24px', fontWeight: 700, color: '#0f172a' } } } } },
+            };
+        },
     },
     methods: {
-        getDashboardData() {
-            const _this = this;
-            _this.$store.commit('httpRequest', true);
-
-            _this.httpReq('/api/v1/admin/dashboard-stats', 'get', {}, {}, function (res) {
-                _this.$store.commit('httpRequest', false);
-                if (res) {
-                    const dataObj = res.data || res;
-                    _this.stats = Object.assign({}, _this.stats, dataObj);
-                    
-                    const statusChart = dataObj.status_chart || res.status_chart;
-                    if (statusChart && statusChart.series) {
-                        _this.statusChartSeries = statusChart.series;
-                        _this.statusChartOptions = {
-                            ..._this.statusChartOptions,
-                            xaxis: { categories: statusChart.categories || ['Active', 'Pending', 'Sold', 'Rejected'] }
-                        };
-                    }
-
-                    const catChart = dataObj.category_chart || res.category_chart;
-                    if (catChart && catChart.series && catChart.series.length > 0) {
-                        _this.categoryChartSeries = catChart.series;
-                        _this.categoryChartOptions = {
-                            ..._this.categoryChartOptions,
-                            labels: catChart.labels || []
-                        };
-                    }
-                }
-            });
+        load() {
+            this.loading = true;
+            this.adminRequest('get', 'api/v1/admin/dashboard-stats', {}, { silent: true })
+                .then((result) => {
+                    this.stats = result || {};
+                    this.ready = true;
+                })
+                .catch(() => {})
+                .finally(() => {
+                    this.loading = false;
+                });
         },
-        getStatusBadgeClass(status) {
-            if (status === 'active') return 'badge bg-success-subtle text-success rounded-pill px-3';
-            if (status === 'pending') return 'badge bg-warning-subtle text-warning rounded-pill px-3';
-            if (status === 'rejected') return 'badge bg-danger-subtle text-danger rounded-pill px-3';
-            return 'badge bg-secondary-subtle text-secondary rounded-pill px-3';
-        }
+        categoryPercent(i) {
+            const series = (this.stats.category_chart && this.stats.category_chart.series) || [];
+            const max = Math.max(1, ...series);
+            return Math.round((series[i] / max) * 100);
+        },
     },
     mounted() {
-        this.getDashboardData();
-    }
-};
+        this.load();
+    },
+}
 </script>
-
-<style scoped>
-.icon-shape {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.bg-emerald-light { background: #ecfdf5; }
-.text-emerald { color: #10b981; }
-.btn-emerald { background: #10b981; color: #fff; border: none; }
-.btn-emerald:hover { background: #059669; color: #fff; }
-.btn-outline-emerald { color: #10b981; border-color: #10b981; }
-.btn-outline-emerald:hover { background: #10b981; color: #fff; }
-
-.bg-amber-light { background: #fffbebf; }
-.text-amber { color: #f59e0b; }
-
-.bg-blue-light { background: #eff6ff; }
-.text-blue { color: #3b82f6; }
-
-.bg-purple-light { background: #faf5ff; }
-.text-purple { color: #8b5cf6; }
-
-.stat-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.06) !important;
-}
-</style>

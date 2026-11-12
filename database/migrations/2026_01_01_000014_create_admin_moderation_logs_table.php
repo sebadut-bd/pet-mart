@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('admin_id')->constrained('users')->cascadeOnDelete();
-            $table->string('action', 30); // approved, rejected, suspended
+            $table->string('action', 30);
             $table->text('reason')->nullable();
             $table->timestamps();
         });

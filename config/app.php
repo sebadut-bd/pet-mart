@@ -1,14 +1,15 @@
 <?php
 
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Facade;
-use Maatwebsite\Excel\ExcelServiceProvider;
 
 return [
     'name' => env('APP_NAME', 'Laravel'),
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
+
+    // Customer site (React, frontend/). Used for "View on site" links in the admin panel.
+    'frontend_url' => rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/'),
 
     'asset_url' => env('ASSET_URL'),
 
@@ -48,20 +49,10 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
-        Maatwebsite\Excel\ExcelServiceProvider::class,
 
         App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class,
-        // App\Providers\BroadcastServiceProvider::class,
-        App\Providers\EventServiceProvider::class,
-        App\Providers\RouteServiceProvider::class,
-
     ],
 
-    // 'aliases' => Facade::defaultAliases()->merge([])->toArray(),
-    'aliases' => Facade::defaultAliases()->merge([
-        'Excel' => Excel::class,
-        'QrCode' => SimpleSoftwareIO\QrCode\Facades\QrCode::class,
-    ])->toArray(),
+    'aliases' => Facade::defaultAliases()->toArray(),
 
 ];

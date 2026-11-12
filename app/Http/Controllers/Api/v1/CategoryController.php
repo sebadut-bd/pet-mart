@@ -9,9 +9,6 @@ use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
-    /**
-     * List main root categories with subcategories and attributes schema.
-     */
     public function index(): JsonResponse
     {
         $categories = Category::whereNull('parent_id')
@@ -26,9 +23,6 @@ class CategoryController extends Controller
         ]);
     }
 
-    /**
-     * Get details of a single category by slug.
-     */
     public function show(string $slug): JsonResponse
     {
         $category = Category::where('slug', $slug)

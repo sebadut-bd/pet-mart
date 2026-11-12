@@ -41,13 +41,11 @@ class ModuleController extends Controller
             'status'       => true,
         ]);
 
-        // Auto-assign module to Super Admin (role 1)
         RoleModules::firstOrCreate([
             'role_id'   => 1,
             'module_id' => $module->id,
         ]);
 
-        // Default permissions: view, add, update, delete
         $defaultPermissions = ['view', 'add', 'update', 'delete'];
         foreach ($defaultPermissions as $perm) {
             $p = Permission::create([

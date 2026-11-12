@@ -5,7 +5,7 @@ import { PawPrint, Plus, Search, Menu, X } from 'lucide-react';
 import { UserMenu } from './UserMenu';
 import { MobileMenu } from './MobileMenu';
 
-export const COMPANY_LOGO = '/brand/seba-dut.jpg';
+export const COMPANY_LOGO = '/brand/seba-dut-logo.jpg';
 export const COMPANY_NAME = 'Seba Dut';
 
 /** Company logo + PetMart wordmark. `light` = white text for dark backgrounds. */

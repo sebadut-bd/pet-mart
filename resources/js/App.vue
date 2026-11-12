@@ -3,11 +3,7 @@
 </template>
 
 <script>
-    export default {
-        name: "App"
-    }
+export default {
+    name: "App",
+}
 </script>
-
-<style scoped>
-.toast-container{ opacity:1 !important; }
-</style>

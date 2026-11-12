@@ -4,8 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Stores flexible pet/goods specs: breed, age, gender, color,
-// vaccination_status, health_condition, weight, size, etc.
 return new class extends Migration
 {
     public function up(): void

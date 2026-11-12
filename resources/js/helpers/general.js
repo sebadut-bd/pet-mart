@@ -2,59 +2,28 @@ import axios from 'axios';
 
 export function initialize(store, router) {
     router.beforeEach((to, from, next) => {
-        window.document.title = to.meta.pageTitle !== undefined ? to.meta.pageTitle : '';
-        store.state.dataList = {};
-        store.state.detailsData = {};
-        store.state.formObject = {};
+        window.document.title = to.meta.pageTitle ? `${to.meta.pageTitle} · PetMart Admin` : 'PetMart Admin';
 
+        store.state.dataList = {};
+        store.state.formObject = {};
         store.state.formType = 1;
         store.state.updateId = '';
-        $('body').removeClass('vertical-sidebar-enable');
-
-        store.state.formFilter = {
-            keyword: '',
-            perPage: 15,
-            status: '',
-        };
+        store.state.formFilter = { keyword: '', perPage: 15, status: '' };
         next();
     });
 
-    if (localStorage.getItem('software')) {
-        store.state.software = localStorage.getItem('software');
-        axios.defaults.headers.common['Software'] = localStorage.getItem('software');
-    }
+    axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+    axios.defaults.headers.common['Accept'] = 'application/json';
 
-    axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
     axios.interceptors.response.use(function (response) {
         return response;
     }, function (error) {
-        if (parseInt(error.response.status) === 401) {
-            // store.commit('logout');
+        const status = error.response ? parseInt(error.response.status) : 0;
+        if (status === 401) {
+            window.location.assign(`${window.baseUrl || ''}/login`);
+        } else if (status === 419) {
+            window.location.reload();
         }
         return Promise.reject(error);
     });
-
-    function getCookie(name) {
-        var nameEQ = name + "=";
-        var ca = document.cookie.split(';');
-        for (var i = 0; i < ca.length; i++) {
-            var c = ca[i];
-            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-        }
-        return null;
-    }
-    // user activity log
-    axios.interceptors.request.use(function (config) {
-        var logData = {
-            url: config.url,
-            method: config.method,
-            module: router.currentRoute.meta.pageTitle,
-        };
-        config.headers['LogData'] = JSON.stringify(logData);
-        return config;
-    }, (err) => {
-        return Promise.reject(err);
-    }
-    );
 }

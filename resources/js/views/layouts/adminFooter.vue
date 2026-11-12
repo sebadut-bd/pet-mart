@@ -1,14 +1,7 @@
 <template>
-    <footer class="footer py-2 d-flex align-items-center">
-        <div class="container-fluid">
-            <div class="row w-100">
-                <div class="col-sm-6 text-center text-sm-start">
-                    <small>
-                        Design & Develop by <strong>Pet-Mart Team</strong>
-                    </small> © {{ currentYear }}
-                </div>
-            </div>
-        </div>
+    <footer class="pm-footer">
+        <span>© {{ year }} PetMart · Bangladesh pet marketplace</span>
+        <span>Admin panel</span>
     </footer>
 </template>
 
@@ -16,17 +9,7 @@
 export default {
     name: "adminFooter",
     data() {
-        return {
-            currentYear: new Date().getFullYear()
-        }
-    }
+        return { year: new Date().getFullYear() };
+    },
 }
 </script>
-
-<style scoped>
-.footer {
-    font-size: 14px;
-    color: #ffffff;
-    background-color: #3b6e67;
-}
-</style>

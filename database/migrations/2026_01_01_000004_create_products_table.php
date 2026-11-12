@@ -22,24 +22,19 @@ return new class extends Migration
             $table->boolean('is_negotiable')->default(false);
             $table->boolean('is_free')->default(false);
 
-            // listing type: sell, adopt, lost, found, stud_service
             $table->enum('listing_type', ['sell', 'adopt', 'lost', 'found', 'stud_service'])->default('sell');
 
-            // for goods: new, used; for pets: leave null
             $table->enum('condition', ['new', 'used'])->nullable();
 
-            // location
             $table->unsignedBigInteger('division_id')->nullable()->index();
             $table->unsignedBigInteger('district_id')->nullable()->index();
             $table->unsignedBigInteger('area_id')->nullable()->index();
             $table->string('full_address')->nullable();
 
-            // flags
             $table->boolean('is_featured')->default(false);
             $table->boolean('is_verified')->default(false);
             $table->boolean('is_urgent')->default(false);
 
-            // status: pending=awaiting admin approval, active, sold, expired, rejected
             $table->enum('status', ['pending', 'active', 'sold', 'expired', 'rejected'])->default('pending');
             $table->text('rejection_reason')->nullable();
 

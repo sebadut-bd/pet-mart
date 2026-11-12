@@ -15,15 +15,14 @@ class Product extends Model
     protected $fillable = [
         'user_id',
         'category_id',
-        'sub_category_id',
         'title',
         'slug',
         'description',
         'price',
         'is_negotiable',
         'is_free',
-        'listing_type', // sell, adopt, lost, found, stud_service
-        'condition', // new, used
+        'listing_type',
+        'condition',
         'division_id',
         'district_id',
         'area_id',
@@ -31,7 +30,7 @@ class Product extends Model
         'is_featured',
         'is_verified',
         'is_urgent',
-        'status', // pending, active, sold, expired, rejected
+        'status',
         'rejection_reason',
         'views',
         'expires_at',
@@ -56,11 +55,6 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id');
-    }
-
-    public function subCategory(): BelongsTo
-    {
-        return $this->belongsTo(SubCategory::class, 'sub_category_id');
     }
 
     public function images(): HasMany

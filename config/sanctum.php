@@ -46,7 +46,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Minutes. Customer tokens expire after 30 days by default; the frontend handles the 401.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------
@@ -60,8 +61,8 @@ return [
     */
 
     'middleware' => [
-        'verify_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,
-        'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
+        'verify_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
     ],
 
 ];

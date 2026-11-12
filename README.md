@@ -322,7 +322,7 @@ Ensure your local environment meets the following requirements:
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/shahriarshawon01/school_management_system.git pet-mart
+git clone https://github.com/sebadut-bd/pet-mart.git
 cd pet-mart
 ```
 

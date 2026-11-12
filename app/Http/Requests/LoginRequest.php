@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LoginRequest extends FormRequest
@@ -13,26 +14,16 @@ class LoginRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('phone')) {
-            $phone = preg_replace('/[^\d+]/', '', $this->phone);
-            if (!str_starts_with($phone, '+880')) {
-                if (str_starts_with($phone, '880')) {
-                    $phone = '+' . $phone;
-                } elseif (str_starts_with($phone, '0')) {
-                    $phone = '+88' . $phone;
-                } else {
-                    $phone = '+880' . $phone;
-                }
-            }
-            $this->merge(['phone' => $phone]);
+        if ($this->filled('phone')) {
+            $this->merge(['phone' => PhoneNumber::normalize($this->input('phone'))]);
         }
     }
 
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string'],
-            'password' => ['required', 'string'],
+            'phone'    => ['required', 'string', 'max:20'],
+            'password' => ['required', 'string', 'max:100'],
         ];
     }
 }

@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Category;
 use App\Models\CategoryAttribute;
-use App\Models\SubCategory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -12,7 +11,6 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Pets Root Category
         $pets = Category::firstOrCreate(
             ['slug' => 'pets'],
             [
@@ -24,7 +22,6 @@ class CategorySeeder extends Seeder
             ]
         );
 
-        // Subcategories under Pets
         $dogs = Category::firstOrCreate(
             ['slug' => 'dogs'],
             [
@@ -73,7 +70,6 @@ class CategorySeeder extends Seeder
             ]
         );
 
-        // 2. Pet Supplies & Accessories Root Category
         $supplies = Category::firstOrCreate(
             ['slug' => 'pet-supplies'],
             [
@@ -85,7 +81,6 @@ class CategorySeeder extends Seeder
             ]
         );
 
-        // 3. Category Attributes for Dogs
         CategoryAttribute::firstOrCreate(
             ['category_id' => $dogs->id, 'attribute_key' => 'breed'],
             [
@@ -132,7 +127,6 @@ class CategorySeeder extends Seeder
             ]
         );
 
-        // Category Attributes for Cats
         CategoryAttribute::firstOrCreate(
             ['category_id' => $cats->id, 'attribute_key' => 'breed'],
             [

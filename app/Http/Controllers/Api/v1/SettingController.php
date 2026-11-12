@@ -8,7 +8,6 @@ use Illuminate\Http\JsonResponse;
 
 class SettingController extends Controller
 {
-    /** Public site settings (only rows marked is_public) for the customer frontend. */
     public function index(): JsonResponse
     {
         return response()->json([

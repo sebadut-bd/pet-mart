@@ -1,54 +1,58 @@
 <template>
-    <header id="page-topbar">
-        <div class="layout-width">
-            <div class="navbar-header">
-                <div class="d-flex align-items-center">
-                    <button type="button" class="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger"
-                        id="topnav-hamburger-icon" @click="toggleAppMenu()">
-                        <span class="menu_colups_icon">
-                            <i v-if="httpRequest" class="fa fa-spin fa-spinner fs-18"></i>
-                            <i v-else class="fa fa-bars fs-18"></i>
-                        </span>
-                    </button>
+    <header class="pm-topbar">
+        <button type="button" class="pm-icon-btn" @click="toggleSidebar" :aria-label="'Toggle menu'" title="Toggle menu">
+            <i v-if="httpRequest" class="fa-solid fa-circle-notch fa-spin"></i>
+            <i v-else class="fa-solid fa-bars-staggered"></i>
+        </button>
 
-                    <div class="ms-2">
-                        <h4 class="mb-0 fw-bold text-dark">
-                            <i class="fa fa-paw text-primary me-2"></i>Pet-Mart Administration
-                        </h4>
-                    </div>
-                </div>
+        <div class="pm-topbar-title">
+            <div class="pm-crumbs" aria-label="Breadcrumb">
+                <span><router-link to="/admin/dashboard">Admin</router-link></span>
+                <span v-if="section">{{ section }}</span>
+            </div>
+            <h1>{{ pageTitle() || 'Dashboard' }}</h1>
+        </div>
 
-                <div class="d-flex align-items-center">
-                    <div class="dropdown ms-sm-3 header-item topbar-user">
-                        <button type="button" class="btn d-flex align-items-center" id="page-header-user-dropdown" data-bs-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">
-                            <span class="d-flex align-items-center">
-                                <img v-if="userImage" class="rounded-circle header-profile-user me-2" :src="userImage"
-                                    alt="User Image" />
-                                <div v-else
-                                    class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center header-profile-user me-2"
-                                    style="width: 36px; height: 36px; font-weight: 600; font-size: 13px;">
-                                    {{ getInitials(getUserName) }}
-                                </div>
+        <div class="pm-topbar-actions">
+            <router-link
+                v-if="pendingTotal"
+                to="/admin/marketplace/moderation"
+                class="pm-icon-btn"
+                :title="`${pendingTotal} item(s) need attention`"
+                aria-label="Items that need attention"
+            >
+                <i class="fa-regular fa-bell"></i>
+                <span class="pm-dot"></span>
+            </router-link>
+            <a v-if="frontendUrl" :href="frontendUrl" target="_blank" rel="noopener" class="pm-icon-btn d-none d-sm-inline-grid" title="Open the customer site">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
 
-                                <span class="text-start d-none d-xl-inline-block">
-                                    <span class="fw-semibold user-name-text d-block">{{ getUserName }}</span>
-                                    <small class="text-muted d-block" style="font-size: 11px;">Administrator</small>
-                                </span>
-                                <i class="fa fa-chevron-down ms-2 fs-12 text-muted"></i>
-                            </span>
+            <div class="dropdown">
+                <button type="button" class="pm-user-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                    <img v-if="userImage" class="pm-avatar" :src="userImage" alt="">
+                    <span v-else class="pm-avatar">{{ nameInitials(userName) }}</span>
+                    <span class="pm-user-meta">
+                        <strong>{{ userName }}</strong>
+                        <small>Administrator</small>
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-muted" style="font-size: 10px"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <h6 class="dropdown-header">{{ userEmail || 'Signed in' }}</h6>
+                    <router-link class="dropdown-item" to="/admin/profile">
+                        <i class="fa-regular fa-user"></i> My profile
+                    </router-link>
+                    <router-link class="dropdown-item" to="/admin/general_setting">
+                        <i class="fa-solid fa-sliders"></i> Site settings
+                    </router-link>
+                    <div class="dropdown-divider"></div>
+                    <form :action="`${baseUrl}/logout`" method="post" class="m-0">
+                        <input type="hidden" name="_token" :value="csrfToken">
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Log out
                         </button>
-
-                        <div class="dropdown-menu dropdown-menu-end shadow">
-                            <h6 class="dropdown-header">Welcome, {{ getUserName }}!</h6>
-                            <router-link class="dropdown-item" to="/admin/profile">
-                                <i class="fa fa-user text-muted me-2"></i> Profile
-                            </router-link>
-                            <a class="dropdown-item text-danger" :href="`${baseUrl}/logout`">
-                                <i class="fa fa-sign-out text-danger me-2"></i> Logout
-                            </a>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -58,45 +62,46 @@
 <script>
 export default {
     name: "topNavBar",
-    data() {
-        return {}
-    },
-
     computed: {
-        getUserName() {
-            if (this.Config && this.Config.user) {
-                return this.Config.user.name || this.Config.user.username || 'Admin';
-            }
-            return 'Super Admin';
+        user() {
+            return (this.Config && this.Config.user) || {};
+        },
+        userName() {
+            return this.user.name || 'Admin';
+        },
+        userEmail() {
+            return this.user.email || '';
         },
         userImage() {
-            const img = this.showData(this.Config ? this.Config.user : null, 'avatar');
-            if (!img || typeof img !== 'string' || img.trim() === '' || img === 'null' || img === 'NULL') {
-                return null;
-            }
-            return this.getImage(img);
+            return this.user.avatar || null;
+        },
+        frontendUrl() {
+            return window.frontendUrl || '';
+        },
+        csrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        },
+        pendingTotal() {
+            const b = (this.Config && this.Config.badges) || {};
+            return (b.moderation || 0) + (b.report || 0) + (b.contact_message || 0);
+        },
+        section() {
+            const p = this.$route.path;
+            if (p.startsWith('/admin/marketplace')) return 'Marketplace';
+            if (/\/admin\/(users|module|role|role_permissions)/.test(p)) return 'Access control';
+            if (p.startsWith('/admin/general_setting')) return 'Settings';
+            return '';
         },
     },
-
     methods: {
-        toggleAppMenu: function () {
-            $('body').toggleClass('vertical-sidebar-enable');
-        },
-
-        getInitials(username) {
-            if (!username || typeof username !== 'string' || !username.trim()) return 'SA';
-            const parts = username.trim().split(' ');
-            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        toggleSidebar() {
+            if (window.innerWidth < 992) {
+                this.$store.commit('sidebarOpen', !this.$store.getters.sidebarOpen);
+            } else {
+                this.$store.commit('sidebarCollapsed', !this.$store.getters.sidebarCollapsed);
+            }
         },
     },
 }
 </script>
-
-<style scoped>
-.header-profile-user {
-    width: 36px;
-    height: 36px;
-    object-fit: cover;
-}
-</style>

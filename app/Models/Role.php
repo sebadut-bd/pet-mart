@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\ModelScopes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Validator;
@@ -11,7 +10,6 @@ class Role extends Model
 {
     protected $table = 'roles';
 
-    use ModelScopes;
 
     use HasFactory;
 

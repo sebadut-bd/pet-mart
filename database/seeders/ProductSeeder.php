@@ -29,7 +29,6 @@ class ProductSeeder extends Seeder
         $fishCategory = Category::where('slug', 'fish-aquatics')->first();
         $suppliesCategory = Category::where('slug', 'pet-supplies')->first();
 
-        // Listing 1: Persian Kitten
         if ($catsCategory) {
             $p1 = Product::firstOrCreate(
                 ['slug' => 'healthy-white-doll-face-persian-kitten-2-months'],
@@ -60,7 +59,6 @@ class ProductSeeder extends Seeder
             ProductImage::firstOrCreate(['product_id' => $p1->id, 'image_path' => 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800'], ['is_primary' => true, 'sort_order' => 0]);
         }
 
-        // Listing 2: British Shorthair Kitten
         if ($catsCategory) {
             $p2 = Product::firstOrCreate(
                 ['slug' => 'purebred-british-shorthair-blue-kitten'],
@@ -86,7 +84,6 @@ class ProductSeeder extends Seeder
             ProductImage::firstOrCreate(['product_id' => $p2->id, 'image_path' => 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=800'], ['is_primary' => true, 'sort_order' => 0]);
         }
 
-        // Listing 3: German Shepherd Puppy
         if ($dogsCategory) {
             $p3 = Product::firstOrCreate(
                 ['slug' => 'show-line-german-shepherd-puppy-3-months'],
@@ -112,7 +109,6 @@ class ProductSeeder extends Seeder
             ProductImage::firstOrCreate(['product_id' => $p3->id, 'image_path' => 'https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=800'], ['is_primary' => true, 'sort_order' => 0]);
         }
 
-        // Listing 4: Free Kitten Adoption
         if ($catsCategory) {
             $p7 = Product::firstOrCreate(
                 ['slug' => 'rescued-local-kitten-looking-loving-home-free-adoption'],

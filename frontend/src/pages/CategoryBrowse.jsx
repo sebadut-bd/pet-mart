@@ -11,6 +11,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Pagination } from '../components/ui/Pagination';
 import { Breadcrumbs } from '../components/layout/Breadcrumbs';
 import { ProductGrid } from '../components/product/ProductGrid';
+import { PromoBanners } from '../components/layout/PromoBanners';
 import { FilterPanel } from '../components/filters/FilterPanel';
 import { FilterDrawer } from '../components/filters/FilterDrawer';
 import { SortSelect } from '../components/filters/SortSelect';
@@ -211,6 +212,7 @@ export default function CategoryBrowse() {
       </div>
 
       <Container className="pt-6">
+        <PromoBanners position="browse_top" wrap={false} className="mb-6" />
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Desktop sidebar */}
           <aside className="hidden lg:block" aria-label="Filters">

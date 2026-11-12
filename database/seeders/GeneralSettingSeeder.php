@@ -5,19 +5,11 @@ namespace Database\Seeders;
 use App\Models\GeneralSetting;
 use Illuminate\Database\Seeder;
 
-/**
- * Creates the setting rows the site expects. Safe to run again:
- * existing rows keep their current value; only metadata (type, group, label, visibility) is refreshed.
- *
- * To add a new setting later, add a row here and run:
- *   php artisan db:seed --class=GeneralSettingSeeder
- */
 class GeneralSettingSeeder extends Seeder
 {
     public function run(): void
     {
         $settings = [
-            // group, key, type, label, public, default value
             ['general', 'site_name', 'text', 'Site name', true, 'PetMart'],
             ['general', 'site_tagline', 'text', 'Tagline', true, "Bangladesh's moderated pet marketplace"],
 

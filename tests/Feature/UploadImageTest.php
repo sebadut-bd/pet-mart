@@ -8,10 +8,6 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/**
- * POST /api/v1/uploads/images
- * Uses a fake disk and an unsaved user, so it does not touch the database or real storage.
- */
 class UploadImageTest extends TestCase
 {
     private const URL = '/api/v1/uploads/images';

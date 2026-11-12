@@ -8,6 +8,11 @@ import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { Phone, Mail, MapPin, Send } from 'lucide-react';
 import { useSiteSettings, setting } from '../hooks/useSiteSettings';
+import api from '../services/api';
+import { PhoneInput } from '../components/ui/PhoneInput';
+import { BD_PHONE_REGEX } from '../lib/constants';
+import { fieldErrors } from '../lib/auth';
+import { isBlank, toastErrors } from '../lib/validation';
 
 export default function Contact() {
   useDocumentTitle('Contact Support');
@@ -17,14 +22,46 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', message: '' });
 
-  const handleSubmit = (e) => {
+  const [errors, setErrors] = useState({});
+  const ids = { name: 'contact-name', phone: 'contact-phone', message: 'contact-message' };
+
+  const validate = () => {
+    const e = {};
+    if (isBlank(formData.name)) e.name = 'Your name is required.';
+    if (isBlank(formData.phone)) e.phone = 'Mobile number is required.';
+    else if (!BD_PHONE_REGEX.test(formData.phone)) e.phone = 'Mobile number must be 11 digits and start with 01.';
+    if (formData.message.trim().length < 10) e.message = 'Please write at least 10 characters.';
+    setErrors(e);
+    if (Object.keys(e).length) toastErrors(e, ids);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Your message has been received! Our support team will respond shortly.');
+    try {
+      const res = await api.post('/contact', {
+        name: formData.name.trim(),
+        phone: formData.phone,
+        message: formData.message.trim(),
+      });
+      toast.success(res.data?.message || 'Thanks, we have received your message.');
       setFormData({ name: '', phone: '', message: '' });
-    }, 600);
+      setErrors({});
+    } catch (err) {
+      const fe = fieldErrors(err);
+      if (Object.keys(fe).length) {
+        setErrors(fe);
+        toastErrors(fe, ids);
+      } else if (err.response?.status === 429) {
+        toast.error('You have sent several messages already. Please try again in a few minutes.');
+      } else {
+        toast.error(err.response?.data?.message || 'Your message could not be sent. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,25 +114,32 @@ export default function Contact() {
 
         {/* Message Form */}
         <div className="md:col-span-2">
-          <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-xs space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="bg-white p-6 sm:p-8 rounded-2xl border border-border shadow-xs space-y-5">
             <h3 className="font-bold text-navy text-lg">Send Us a Message</h3>
             <Input
+              id="contact-name"
               label="Your Name"
               required
+              maxLength={100}
+              error={errors.name}
               placeholder="e.g. Arif Hossain"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
-            <Input
+            <PhoneInput
+              id="contact-phone"
               label="Contact Phone"
               required
-              placeholder="01XXXXXXXXX"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              error={errors.phone}
             />
             <Textarea
+              id="contact-message"
               label="Message"
               required
+              maxLength={2000}
+              error={errors.message}
               rows={4}
               placeholder="Describe your inquiry, issue, or feedback..."
               value={formData.message}

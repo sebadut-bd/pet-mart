@@ -5,13 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
-/**
- * Key/value site settings managed from the admin panel (General Settings).
- *
- * Columns: key, value, type (text|textarea|image|url|email|boolean), group, display_name, is_public.
- * Only rows with is_public = true are exposed by the public API (GET /api/v1/settings).
- * Image values are stored as paths on the "public" disk and returned as absolute URLs.
- */
 class GeneralSetting extends Model
 {
     protected $fillable = ['key', 'value', 'type', 'group', 'display_name', 'is_public'];
@@ -34,7 +27,6 @@ class GeneralSetting extends Model
         return static::where('key', $key)->value('value') ?? $default;
     }
 
-    /** Value as the API should show it (image paths become URLs). */
     public function presentedValue(): mixed
     {
         if ($this->type === 'image' && $this->value) {
@@ -47,7 +39,6 @@ class GeneralSetting extends Model
         return $this->value;
     }
 
-    /** Public settings as key => value, cached until a setting changes. */
     public static function publicMap(): array
     {
         return Cache::rememberForever(self::PUBLIC_CACHE_KEY, function () {

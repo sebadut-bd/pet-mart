@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\ModelScopes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,7 +11,6 @@ class Module extends Model
 {
     use HasFactory;
 
-    use ModelScopes;
 
     use SoftDeletes;
 
@@ -22,7 +20,7 @@ class Module extends Model
 
     protected $appends = ['checked'];
 
-    protected $fillable = ['id', 'name', 'display_name', 'parent_id', 'link'];
+    protected $fillable = ['id', 'name', 'display_name', 'parent_id', 'link', 'icon', 'status'];
 
     public function validate($input){
 

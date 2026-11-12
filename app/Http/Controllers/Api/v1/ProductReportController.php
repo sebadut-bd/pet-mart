@@ -3,38 +3,36 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\ProductReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductReportController extends Controller
 {
-    /**
-     * Report listing for abuse / violation.
-     */
-    public function store(Request $request, int $productId): JsonResponse
+    public function store(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'reason'      => 'required|string|max:100',
-            'description' => 'nullable|string|max:1000',
+        $data = $request->validate([
+            'reason'      => ['required', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $report = ProductReport::updateOrCreate(
-            [
-                'product_id' => $productId,
-                'user_id'    => $request->user()->id,
-            ],
-            [
-                'reason'      => $request->reason,
-                'description' => $request->description,
-                'status'      => 'pending',
-            ]
+        $product = Product::whereIn('status', ['active', 'sold'])->find($id);
+        if (! $product) {
+            return response()->json(['status' => false, 'message' => 'This listing is no longer available.'], 404);
+        }
+        if ($product->user_id === $request->user()->id) {
+            return response()->json(['status' => false, 'message' => 'You cannot report your own listing.'], 422);
+        }
+
+        ProductReport::updateOrCreate(
+            ['product_id' => $product->id, 'user_id' => $request->user()->id],
+            ['reason' => $data['reason'], 'description' => $data['description'] ?? null, 'status' => 'pending']
         );
 
         return response()->json([
             'status'  => true,
-            'message' => 'Listing report submitted to admin for review.',
-            'data'    => $report,
+            'message' => 'Thanks. Our moderators will review this listing.',
         ], 201);
     }
 }

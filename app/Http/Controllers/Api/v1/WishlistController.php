@@ -11,17 +11,17 @@ use Illuminate\Http\Request;
 
 class WishlistController extends Controller
 {
-    /**
-     * Get user's saved wishlist listings.
-     */
     public function index(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $productIds = Wishlist::where('user_id', $userId)->pluck('product_id');
 
-        $products = Product::whereIn('id', $productIds)
-            ->with(['category', 'user', 'primaryImage', 'images', 'division', 'district', 'area'])
-            ->latest()
+        $products = Product::query()
+            ->join('wishlists', 'wishlists.product_id', '=', 'products.id')
+            ->where('wishlists.user_id', $userId)
+            ->whereIn('products.status', ['active', 'sold'])
+            ->orderByDesc('wishlists.created_at')
+            ->select('products.*')
+            ->with(['category', 'user', 'primaryImage', 'division', 'district', 'area'])
             ->get();
 
         return response()->json([
@@ -30,36 +30,24 @@ class WishlistController extends Controller
         ]);
     }
 
-    /**
-     * Toggle wishlist item.
-     */
     public function toggle(Request $request): JsonResponse
     {
-        $request->validate(['product_id' => 'required|exists:products,id']);
-
+        $request->validate(['product_id' => ['required', 'integer']]);
         $userId = $request->user()->id;
-        $productId = $request->product_id;
 
-        $existing = Wishlist::where('user_id', $userId)->where('product_id', $productId)->first();
-
+        $existing = Wishlist::where('user_id', $userId)->where('product_id', $request->product_id)->first();
         if ($existing) {
             $existing->delete();
-            return response()->json([
-                'status' => true,
-                'message' => 'Listing removed from wishlist.',
-                'is_wishlisted' => false,
-            ]);
+
+            return response()->json(['status' => true, 'message' => 'Removed from saved listings.', 'is_wishlisted' => false]);
         }
 
-        Wishlist::create([
-            'user_id' => $userId,
-            'product_id' => $productId,
-        ]);
+        if (! Product::whereKey($request->product_id)->whereIn('status', ['active', 'sold'])->exists()) {
+            return response()->json(['status' => false, 'message' => 'This listing is no longer available.'], 422);
+        }
 
-        return response()->json([
-            'status' => true,
-            'message' => 'Listing saved to wishlist.',
-            'is_wishlisted' => true,
-        ]);
+        Wishlist::firstOrCreate(['user_id' => $userId, 'product_id' => $request->product_id]);
+
+        return response()->json(['status' => true, 'message' => 'Saved to your list.', 'is_wishlisted' => true]);
     }
 }

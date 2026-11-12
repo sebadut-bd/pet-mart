@@ -2,7 +2,7 @@
     <div class="main_component">
         <div class="row">
             <div class="col">
-                <data-table :table-heading="tableHeading" table-title="Student List">
+                <data-table :table-heading="tableHeading" table-title="Modules">
                     <template v-slot:page_top>
                         <page-top topPageTitle="Module List" page-modal-title="Module Add/Edit"
                             :default-object="{ parent_id: '' }"></page-top>
