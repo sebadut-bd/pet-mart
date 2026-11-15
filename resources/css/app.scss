@@ -1200,6 +1200,14 @@ a {
 
     &.is-drag { border-color: var(--pm-emerald); background: var(--pm-emerald-50); }
 
+    &.is-clickable {
+        cursor: pointer;
+
+        &:hover { border-color: var(--pm-emerald); background: #f0fdf9; }
+        &:focus-visible { outline: none; border-color: var(--pm-emerald); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        &.is-busy { cursor: progress; }
+    }
+
     .pm-upload-preview {
         width: 120px;
         height: 68px;
@@ -1210,6 +1218,12 @@ a {
         place-items: center;
         color: #94a3b8;
         flex-shrink: 0;
+
+        &.is-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+        }
     }
 }
 

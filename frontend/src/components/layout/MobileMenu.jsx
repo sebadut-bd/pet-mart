@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  X, Home, Grid, Heart, MessageSquare, LayoutDashboard, 
-  PlusCircle, LogIn, UserPlus, LogOut, Search, PawPrint, ShieldCheck 
-} from 'lucide-react';
+import { X, Home, Grid, Heart, MessageSquare, LayoutDashboard, PlusCircle, LogIn, UserPlus, LogOut, Search, PawPrint, ShieldCheck, UserCog } from 'lucide-react';
+import { UserAvatar } from '../ui/UserAvatar';
 import { Button } from '../ui/Button';
 import { lockScroll, unlockScroll } from '../../lib/scroll';
 
@@ -99,9 +97,7 @@ export function MobileMenu({ isOpen, onClose, searchQuery, setSearchQuery, onSea
           {/* User Info if logged in */}
           {user && (
             <div className="p-3 bg-slate-50 rounded-xl border border-border flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
-                {user.name.slice(0, 2).toUpperCase()}
-              </div>
+              <UserAvatar user={user} />
               <div className="overflow-hidden">
                 <p className="text-sm font-bold text-navy truncate">{user.name}</p>
                 <p className="text-xs text-muted truncate">{user.phone}</p>
@@ -151,6 +147,14 @@ export function MobileMenu({ isOpen, onClose, searchQuery, setSearchQuery, onSea
                 >
                   <MessageSquare size={18} className="text-muted" />
                   <span>Inquiries & Messages</span>
+                </Link>
+
+                <Link
+                  to="/account/settings"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-navy hover:bg-slate-50 hover:text-primary transition-colors"
+                >
+                  <UserCog size={18} className="text-muted" />
+                  <span>Profile settings</span>
                 </Link>
               </>
             ) : null}

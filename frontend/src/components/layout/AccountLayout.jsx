@@ -1,14 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Heart, MessageSquare, PlusCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Heart, MessageSquare, PlusCircle, LogOut, UserCog } from 'lucide-react';
 import { Container } from '../ui/Container';
-import { initials } from '../../lib/format';
+import { UserAvatar } from '../ui/UserAvatar';
 
 const navItems = [
   { to: '/dashboard', label: 'My Listings', icon: LayoutDashboard },
   { to: '/wishlist', label: 'Saved Pets', icon: Heart },
   { to: '/inquiries', label: 'Inquiries', icon: MessageSquare },
+  { to: '/account/settings', label: 'Profile settings', icon: UserCog },
 ];
 
 export function AccountLayout({ children, title, subtitle }) {
@@ -67,9 +68,7 @@ export function AccountLayout({ children, title, subtitle }) {
           <div className="hidden lg:block bg-white rounded-2xl border border-border p-4 shadow-xs sticky top-24">
             {/* User Info Snippet */}
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4 border border-slate-100">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
-                {initials(user?.name)}
-              </div>
+              <UserAvatar user={user} />
               <div className="overflow-hidden">
                 <p className="text-sm font-bold text-navy truncate">{user?.name}</p>
                 <p className="text-xs text-muted truncate">{user?.phone}</p>

@@ -14,7 +14,7 @@ class UploadAdminController extends AdminController
     {
         $request->validate([
             'image'  => ['required', File::types(['jpg', 'jpeg', 'png', 'webp'])->max(5 * 1024), ImageStorage::RULES],
-            'folder' => ['required', 'in:banners,categories'],
+            'folder' => ['required', 'in:banners,categories,avatars'],
         ]);
 
         try {

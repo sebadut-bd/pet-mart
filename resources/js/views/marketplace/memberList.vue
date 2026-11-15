@@ -77,34 +77,119 @@
             </template>
         </data-table>
 
-        <form-modal modal-size="modal-lg" title="Edit member" submit-text="Save changes" @submit="save">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label" for="m-name">Name <span class="req">*</span></label>
-                    <input id="m-name" v-model="form.name" class="form-control" maxlength="100" placeholder="Full name" :class="{ 'is-invalid': errors.name }">
-                    <span v-if="errors.name" class="error_message">{{ errors.name }}</span>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="m-phone">Mobile number <span class="req">*</span></label>
-                    <input id="m-phone" v-model="form.phone" class="form-control" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" :class="{ 'is-invalid': errors.phone }">
-                    <span v-if="errors.phone" class="error_message">{{ errors.phone }}</span>
-                </div>
-                <div class="col-12">
-                    <label class="form-label" for="m-email">Email</label>
-                    <input id="m-email" v-model="form.email" type="email" class="form-control" maxlength="150" placeholder="name@example.com (optional)" :class="{ 'is-invalid': errors.email }">
-                    <span v-if="errors.email" class="error_message">{{ errors.email }}</span>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-check form-switch">
-                        <input id="m-status" class="form-check-input" type="checkbox" v-model="form.status">
-                        <label class="form-check-label" for="m-status">Active <span class="form-text d-block">Inactive members are signed out and cannot log in.</span></label>
+        <form-modal modal-size="modal-xl" title="Edit member" submit-text="Save changes" @submit="save">
+            <div v-if="editing" class="me-grid">
+                <aside class="me-side">
+                    <div
+                        class="me-photo"
+                        :class="{ 'is-drag': photoDrag, 'is-busy': photoBusy }"
+                        role="button"
+                        tabindex="0"
+                        :aria-label="form.image ? 'Change photo' : 'Upload photo'"
+                        @click="pickPhoto"
+                        @keydown.enter.prevent="pickPhoto"
+                        @keydown.space.prevent="pickPhoto"
+                        @dragover.prevent="photoDrag = true"
+                        @dragleave.prevent="photoDrag = false"
+                        @drop.prevent="onPhotoDrop"
+                    >
+                        <img v-if="photoUrl" :src="photoUrl" alt="">
+                        <span v-else class="me-initials" :class="avatarTone(editing.id)">{{ nameInitials(form.name || editing.name) }}</span>
+                        <span class="me-photo-overlay">
+                            <i :class="photoBusy ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-camera'"></i>
+                            {{ photoBusy ? 'Uploading…' : (form.image ? 'Change photo' : 'Upload photo') }}
+                        </span>
+                        <input ref="photoInput" type="file" class="d-none" accept="image/jpeg,image/png,image/webp" tabindex="-1" @click.stop @change="onPhotoPick">
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-check form-switch">
-                        <input id="m-verified" class="form-check-input" type="checkbox" v-model="form.is_verified">
-                        <label class="form-check-label" for="m-verified">Verified seller <span class="form-text d-block">Shows a badge on their listings.</span></label>
+                    <div class="d-flex justify-content-center gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-light" :disabled="photoBusy" @click="pickPhoto"><i class="fa-solid fa-arrow-up-from-bracket"></i> Upload</button>
+                        <button v-if="form.image" type="button" class="btn btn-sm btn-outline-danger" :disabled="photoBusy" @click="form.image = ''; photoUrl = ''"><i class="fa-regular fa-trash-can"></i> Remove</button>
                     </div>
+                    <span v-if="errors.image" class="error_message text-center">{{ errors.image }}</span>
+                    <p class="form-text text-center mb-0 mt-1">Click or drop a photo. JPG, PNG or WebP, up to 5 MB.</p>
+
+                    <div class="me-identity">
+                        <h4>
+                            {{ form.name || editing.name }}
+                            <i v-if="form.is_verified" class="fa-solid fa-circle-check text-success" title="Verified seller"></i>
+                        </h4>
+                        <p>{{ editing.phone }}</p>
+                        <p>Member since {{ dateTime(editing.created_at, false) }}</p>
+                    </div>
+
+                    <div class="me-stats">
+                        <div><strong>{{ editing.active_products_count }}</strong><span>Live listings</span></div>
+                        <div><strong>{{ editing.products_count }}</strong><span>All listings</span></div>
+                        <div>
+                            <span class="pm-badge" :class="form.status ? 'is-success' : 'is-danger'">{{ form.status ? 'Active' : 'Inactive' }}</span>
+                            <span>Account</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="me-main">
+                    <section>
+                        <h5 class="me-title">Account details</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="m-name">Name <span class="req">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa-regular fa-user"></i></span>
+                                    <input id="m-name" v-model="form.name" class="form-control" maxlength="100" placeholder="Full name or shop name" :class="{ 'is-invalid': errors.name }">
+                                </div>
+                                <span v-if="errors.name" class="error_message">{{ errors.name }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="m-phone">Mobile number <span class="req">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+88</span>
+                                    <input id="m-phone" v-model="form.phone" class="form-control" inputmode="tel" maxlength="20" placeholder="01XXXXXXXXX" :class="{ 'is-invalid': errors.phone }">
+                                </div>
+                                <span v-if="errors.phone" class="error_message">{{ errors.phone }}</span>
+                                <div v-else class="form-text">The member logs in with this number.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="m-email">Email <span class="text-muted fw-normal">(optional)</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fa-regular fa-envelope"></i></span>
+                                    <input id="m-email" v-model="form.email" type="email" class="form-control" maxlength="150" placeholder="name@example.com" :class="{ 'is-invalid': errors.email }">
+                                </div>
+                                <span v-if="errors.email" class="error_message">{{ errors.email }}</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h5 class="me-title">Status</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="me-option" :class="{ 'is-on': form.status }" for="m-status">
+                                    <span class="me-option-icon is-emerald"><i class="fa-solid fa-user-check"></i></span>
+                                    <span class="flex-grow-1">
+                                        <strong>Active account</strong>
+                                        <small>Inactive members are signed out everywhere and cannot log in.</small>
+                                    </span>
+                                    <span class="form-check form-switch m-0">
+                                        <input id="m-status" class="form-check-input" type="checkbox" v-model="form.status">
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="me-option" :class="{ 'is-on': form.is_verified }" for="m-verified">
+                                    <span class="me-option-icon is-sky"><i class="fa-solid fa-circle-check"></i></span>
+                                    <span class="flex-grow-1">
+                                        <strong>Verified seller</strong>
+                                        <small>Shows a trust badge on their listings and profile.</small>
+                                    </span>
+                                    <span class="form-check form-switch m-0">
+                                        <input id="m-verified" class="form-check-input" type="checkbox" v-model="form.is_verified">
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <p class="me-note"><i class="fa-solid fa-circle-info"></i> Changes take effect as soon as you save. The member is not notified.</p>
                 </div>
             </div>
         </form-modal>
@@ -124,7 +209,11 @@ export default {
             tableHeading: ['Member', 'Phone', 'Listings', 'Joined', 'Seller badge', 'Active', 'Actions'],
             busyId: null,
             editingId: null,
+            editing: null,
             form: {},
+            photoUrl: '',
+            photoBusy: false,
+            photoDrag: false,
             errors: {},
         };
     },
@@ -155,8 +244,11 @@ export default {
         },
         edit(member) {
             this.editingId = member.id;
+            this.editing = member;
             this.errors = {};
+            this.photoUrl = member.image || '';
             this.form = {
+                image: member.image_path || '',
                 name: member.name,
                 phone: member.phone.replace(/^\+88/, ''),
                 email: member.email || '',
@@ -165,10 +257,45 @@ export default {
             };
             this.openModal('formModal', 'Edit member', false, false);
         },
+        pickPhoto() {
+            if (!this.photoBusy) this.$refs.photoInput.click();
+        },
+        onPhotoPick(e) {
+            const file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (file) this.uploadPhoto(file);
+        },
+        onPhotoDrop(e) {
+            this.photoDrag = false;
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (file) this.uploadPhoto(file);
+        },
+        uploadPhoto(file) {
+            this.$delete(this.errors, 'image');
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                this.$set(this.errors, 'image', 'Choose a JPG, PNG or WebP photo.');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                this.$set(this.errors, 'image', 'The photo must be 5 MB or smaller.');
+                return;
+            }
+            const data = new FormData();
+            data.append('image', file);
+            data.append('folder', 'avatars');
+            this.photoBusy = true;
+            this.axios.post(this.urlGenerate('api/v1/admin/uploads/images'), data)
+                .then((res) => {
+                    this.form.image = res.data.result.path;
+                    this.photoUrl = res.data.result.url;
+                })
+                .catch((err) => this.$set(this.errors, 'image', this.httpErrorMessage(err, 'The photo could not be uploaded.')))
+                .finally(() => { this.photoBusy = false; });
+        },
         save() {
             this.errors = {};
             this.$store.commit('httpRequest', true);
-            this.adminRequest('put', `api/v1/admin/members/${this.editingId}`, { ...this.form, email: this.form.email || null })
+            this.adminRequest('put', `api/v1/admin/members/${this.editingId}`, { ...this.form, email: this.form.email || null, image: this.form.image || null })
                 .then(() => {
                     this.closeModal('formModal', false);
                     this.reload();
@@ -192,3 +319,85 @@ export default {
     },
 }
 </script>
+
+<style scoped>
+.me-grid { display: grid; grid-template-columns: 260px 1fr; gap: 28px; }
+.me-side {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid var(--pm-border);
+    align-self: start;
+}
+.me-photo {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    margin: 0 auto;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 0 0 4px #fff, 0 0 0 5px var(--pm-border), 0 10px 24px -12px rgba(15, 23, 42, 0.35);
+    transition: box-shadow 0.15s;
+}
+.me-photo:focus-visible, .me-photo.is-drag { outline: none; box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--pm-emerald); }
+.me-photo.is-busy { cursor: progress; }
+.me-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.me-initials {
+    width: 100%; height: 100%; display: grid; place-items: center;
+    font-size: 40px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, var(--pm-emerald), var(--pm-c-teal));
+}
+.me-initials.tone-1 { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.me-initials.tone-2 { background: linear-gradient(135deg, #0ea5e9, #6366f1); }
+.me-initials.tone-3 { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.me-initials.tone-4 { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+.me-initials.tone-5 { background: linear-gradient(135deg, #14b8a6, #0ea5e9); }
+.me-photo-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    background: rgba(15, 23, 42, 0.55); color: #fff; font-size: 12.5px; font-weight: 600;
+    opacity: 0; transition: opacity 0.15s;
+}
+.me-photo-overlay i { font-size: 18px; }
+.me-photo:hover .me-photo-overlay, .me-photo:focus-visible .me-photo-overlay,
+.me-photo.is-drag .me-photo-overlay, .me-photo.is-busy .me-photo-overlay { opacity: 1; }
+.me-identity { text-align: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--pm-border); }
+.me-identity h4 { font-size: 16px; margin: 0 0 4px; word-break: break-word; }
+.me-identity p { margin: 0; font-size: 12.5px; color: var(--pm-muted); }
+.me-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+.me-stats > div {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 4px; border-radius: 10px; background: #fff; border: 1px solid var(--pm-border);
+    text-align: center;
+}
+.me-stats strong { font-size: 18px; color: var(--pm-text); line-height: 1; }
+.me-stats span:last-child { font-size: 11px; color: var(--pm-muted); }
+.me-stats .pm-badge { font-size: 11px; padding: 2px 8px; }
+.me-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.me-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--pm-muted); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--pm-border);
+}
+.me-option {
+    display: flex; align-items: flex-start; gap: 12px; height: 100%;
+    padding: 14px; border-radius: 12px; border: 1px solid var(--pm-border); background: #fff;
+    cursor: pointer; margin: 0; transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.me-option:hover { border-color: #cbd5e1; }
+.me-option.is-on { border-color: rgba(16, 185, 129, 0.45); background: #f0fdf9; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08); }
+.me-option strong { display: block; font-size: 13.5px; color: var(--pm-text); }
+.me-option small { display: block; font-size: 12px; color: var(--pm-muted); line-height: 1.45; margin-top: 2px; }
+.me-option-icon { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+.me-option-icon.is-emerald { color: var(--pm-emerald-600); background: var(--pm-emerald-50); }
+.me-option-icon.is-sky { color: #0369a1; background: #f0f9ff; }
+.me-note { margin: 0; font-size: 12.5px; color: var(--pm-muted); }
+.me-note i { color: var(--pm-c-sky); margin-right: 4px; }
+.input-group-text { background: #f8fafc; border-color: #d5dde8; color: var(--pm-muted); font-size: 13px; }
+@media (max-width: 991.98px) {
+    .me-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+</style>

@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\v1\Admin;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\ImageStorage;
 use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminUserController extends AdminController
@@ -53,6 +55,7 @@ class AdminUserController extends AdminController
             'email'    => $data['email'],
             'phone'    => $data['phone'],
             'role_id'  => $data['role_id'],
+            'image'    => $data['image'] ?? null,
             'password' => Hash::make($data['password']),
             'status'   => $data['status'],
             'type'     => 1,
@@ -71,7 +74,7 @@ class AdminUserController extends AdminController
         }
 
         DB::transaction(function () use ($user, $data) {
-            $fields = collect($data)->only(['name', 'email', 'phone', 'role_id', 'status'])->all();
+            $fields = collect($data)->only(['name', 'email', 'phone', 'role_id', 'status', 'image'])->all();
             if (! empty($data['password'])) {
                 $fields['password'] = Hash::make($data['password']);
             }
@@ -92,7 +95,12 @@ class AdminUserController extends AdminController
             return $this->error($error);
         }
 
-        $user->update(['status' => ! $user->status]);
+        DB::transaction(function () use ($user) {
+            $user->update(['status' => ! $user->status]);
+            if (! $user->status) {
+                $user->tokens()->delete();
+            }
+        });
 
         return $this->ok($this->present($user->load('role'), $request->user()->id), $user->status ? 'User activated.' : 'User deactivated.');
     }
@@ -131,18 +139,26 @@ class AdminUserController extends AdminController
             $request->merge(['phone' => PhoneNumber::normalize($request->phone)]);
         }
 
-        return $request->validate([
+        $data = $request->validate([
             'name'     => ['required', 'string', 'min:2', 'max:100'],
             'email'    => ['required', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user?->id)],
             'phone'    => ['required', 'regex:' . PhoneNumber::PATTERN, Rule::unique('users', 'phone')->ignore($user?->id)],
             'role_id'  => ['required', 'integer', Rule::exists('roles', 'id')],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8', 'max:100', 'confirmed'],
             'status'   => ['required', 'boolean'],
+            'image'    => ['nullable', 'string', 'max:255', 'regex:#^avatars/[\w/.-]+$#'],
         ], [
+            'image.regex'  => 'Upload the photo again.',
             'phone.regex'  => 'Enter a valid Bangladesh mobile number, e.g. 01712345678.',
             'phone.unique' => 'Another account already uses this mobile number.',
             'email.unique' => 'Another account already uses this email.',
         ]);
+
+        if (! empty($data['image']) && (str_contains($data['image'], '..') || ! Storage::disk('public')->exists($data['image']))) {
+            abort(response()->json(['message' => 'The photo was not found. Upload it again.', 'errors' => ['image' => ['The photo was not found. Upload it again.']]], 422));
+        }
+
+        return $data;
     }
 
     private function admins()
@@ -157,6 +173,8 @@ class AdminUserController extends AdminController
             'name'       => $u->name,
             'email'      => $u->email,
             'phone'      => $u->phone,
+            'image'      => $u->image,
+            'image_url'  => ImageStorage::url($u->image),
             'role_id'    => $u->role_id,
             'role'       => $u->role?->display_name,
             'status'     => (bool) $u->status,

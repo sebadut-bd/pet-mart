@@ -47,7 +47,8 @@ api.interceptors.response.use(
     if (status === 401 && !SILENT_401.some((p) => url.includes(p)) && getToken()) {
       setToken(null);
       window.dispatchEvent(new Event('petmart:logout'));
-      toast.error('Your session has expired. Please log in again.');
+      const reason = error.response?.data?.message || '';
+      toast.error(/deactivated/i.test(reason) ? reason : 'Your session has expired. Please log in again.');
       const here = window.location.pathname + window.location.search;
       if (!window.location.pathname.startsWith('/login')) {
         window.location.assign(`/login?redirect=${encodeURIComponent(here)}`);

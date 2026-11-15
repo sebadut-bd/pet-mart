@@ -22,6 +22,7 @@ class UploadImageTest extends TestCase
     {
         $user = new User();
         $user->id = 999999;
+        $user->status = true;
         Sanctum::actingAs($user);
     }
 

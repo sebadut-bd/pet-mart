@@ -141,4 +141,87 @@ class AdminAccountsTest extends TestCase
         $this->deleteJson("/api/v1/admin/moderation/{$live->id}")->assertOk();
         $this->assertSoftDeleted('products', ['id' => $live->id]);
     }
+
+    public function test_admin_user_photo_and_member_profile_photo(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $this->signInAdmin();
+        $roleId = Role::value('id');
+
+        $path = $this->postJson('/api/v1/admin/uploads/images', [
+            'image'  => \Illuminate\Http\UploadedFile::fake()->image('me.jpg', 400, 400),
+            'folder' => 'avatars',
+        ])->assertCreated()->json('result.path');
+        $this->assertStringStartsWith('avatars/', $path);
+
+        $id = $this->postJson('/api/v1/admin/users', [
+            'name' => 'Photo Admin', 'email' => 'p-' . Str::random(6) . '@example.com', 'phone' => $this->freePhone(),
+            'role_id' => $roleId, 'password' => 'longpass1', 'password_confirmation' => 'longpass1', 'status' => true, 'image' => $path,
+        ])->assertCreated()->json('result.id');
+        $this->assertSame($path, User::find($id)->image);
+
+        $this->postJson('/api/v1/admin/users', [
+            'name' => 'Bad Photo', 'email' => 'b-' . Str::random(6) . '@example.com', 'phone' => $this->freePhone(),
+            'role_id' => $roleId, 'password' => 'longpass1', 'password_confirmation' => 'longpass1', 'status' => true, 'image' => 'avatars/missing.jpg',
+        ])->assertUnprocessable()->assertJsonValidationErrors('image');
+
+        $member = $this->makeUser();
+        \Laravel\Sanctum\Sanctum::actingAs($member);
+        $memberPath = $this->postJson('/api/v1/uploads/images', [
+            'image'   => \Illuminate\Http\UploadedFile::fake()->image('face.png', 300, 300),
+            'purpose' => 'avatar',
+        ])->assertCreated()->json('data.path');
+
+        $this->putJson('/api/v1/auth/me', ['image' => $memberPath])->assertOk()->assertJsonPath('data.image', asset('storage/' . $memberPath));
+        $this->putJson('/api/v1/auth/me', ['image' => null])->assertOk()->assertJsonPath('data.image', null);
+    }
+
+    public function test_admin_can_set_and_clear_member_photo(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $this->signInAdmin();
+        $member = $this->makeUser();
+        $base = ['name' => $member->name, 'phone' => substr($member->phone, 3), 'email' => null, 'is_verified' => false, 'status' => true];
+
+        $path = $this->postJson('/api/v1/admin/uploads/images', [
+            'image'  => \Illuminate\Http\UploadedFile::fake()->image('m.jpg', 300, 300),
+            'folder' => 'avatars',
+        ])->assertCreated()->json('result.path');
+
+        $this->putJson("/api/v1/admin/members/{$member->id}", $base + ['image' => $path])
+            ->assertOk()->assertJsonPath('result.image_path', $path);
+
+        $this->putJson("/api/v1/admin/members/{$member->id}", $base + ['image' => 'avatars/nope.jpg'])
+            ->assertUnprocessable()->assertJsonValidationErrors('image');
+
+        $this->putJson("/api/v1/admin/members/{$member->id}", $base + ['image' => null])->assertOk();
+        $this->assertNull($member->fresh()->image);
+    }
+
+    public function test_inactive_member_cannot_log_in_or_use_existing_token(): void
+    {
+        $member = $this->makeUser();
+        $token = $member->createToken('t')->plainTextToken;
+
+        $this->getJson('/api/v1/auth/me', ['Authorization' => "Bearer {$token}"])->assertOk();
+
+        $member->forceFill(['status' => false])->save();
+        $this->app['auth']->forgetGuards();
+
+        $this->getJson('/api/v1/auth/me', ['Authorization' => "Bearer {$token}"])
+            ->assertUnauthorized()->assertJsonPath('message', 'Your account has been deactivated. Please contact support.');
+        $this->assertSame(0, $member->tokens()->count());
+
+        $this->postJson('/api/v1/auth/login', ['phone' => substr($member->phone, 3), 'password' => 'secret123'])
+            ->assertForbidden();
+    }
+
+    public function test_inactive_admin_cannot_sign_in(): void
+    {
+        $admin = $this->makeUser(['type' => 1, 'status' => false, 'email' => 'off-' . Str::random(6) . '@example.com']);
+
+        $this->post('/login', ['email' => $admin->email, 'password' => 'secret123'])
+            ->assertSessionHasErrors('email');
+        $this->assertGuest('web');
+    }
 }

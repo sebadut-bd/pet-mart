@@ -198,7 +198,7 @@ class AuthController extends Controller
         ]);
 
         $userId = Cache::pull($this->resetTokenKey($request->token));
-        $user = $userId ? User::find($userId) : null;
+        $user = $userId ? User::where('status', true)->find($userId) : null;
         if (! $user) {
             return $this->fail('This reset link has expired. Please start again.', 422, ['token' => ['This reset link has expired.']]);
         }

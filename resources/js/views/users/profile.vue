@@ -11,7 +11,8 @@
             <div class="col-lg-4">
                 <div class="pm-card">
                     <div class="pm-card-body text-center py-4">
-                        <span class="pm-avatar is-lg mx-auto mb-3" style="width: 72px; height: 72px; font-size: 24px; border-radius: 18px">{{ nameInitials(form.name) }}</span>
+                        <img v-if="imageUrl" :src="imageUrl" class="pm-avatar is-lg mx-auto mb-3" style="width: 72px; height: 72px; border-radius: 18px" alt="">
+                        <span v-else class="pm-avatar is-lg mx-auto mb-3" style="width: 72px; height: 72px; font-size: 24px; border-radius: 18px">{{ nameInitials(form.name) }}</span>
                         <h3 class="mb-1" style="font-size: 17px">{{ form.name || 'Admin' }}</h3>
                         <p class="text-muted mb-2">{{ form.email }}</p>
                         <span class="pm-badge is-violet">Administrator</span>
@@ -26,6 +27,11 @@
                 <form class="pm-card" @submit.prevent="save" novalidate>
                     <div class="pm-card-head"><h3>Account details</h3></div>
                     <div class="pm-card-body row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Profile photo <span class="text-muted fw-normal">(optional)</span></label>
+                            <image-upload v-model="form.image" folder="avatars" avatar hint="Shown in the top bar and the Users list."></image-upload>
+                            <span v-if="errors.image" class="error_message">{{ errors.image }}</span>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label" for="p-name">Name <span class="req">*</span></label>
                             <input id="p-name" v-model="form.name" class="form-control" maxlength="100" autocomplete="name" :class="{ 'is-invalid': errors.name }">
@@ -70,11 +76,15 @@
 </template>
 
 <script>
+import ImageUpload from "../../components/imageUpload";
+
 export default {
     name: "profile",
+    components: { ImageUpload },
     data() {
         return {
-            form: { name: '', email: '', current_password: '', password: '', password_confirmation: '' },
+            form: { image: '', name: '', email: '', current_password: '', password: '', password_confirmation: '' },
+            imageUrl: '',
             phone: '',
             errors: {},
             saving: false,
@@ -83,6 +93,8 @@ export default {
     methods: {
         load() {
             this.adminRequest('get', 'api/profile', {}, { silent: true }).then((u) => {
+                this.form.image = u.image || '';
+                this.imageUrl = u.image_url || '';
                 this.form.name = u.name;
                 this.form.email = u.email;
                 this.phone = u.phone;
@@ -103,7 +115,7 @@ export default {
         save() {
             if (!this.validate()) return;
             this.saving = true;
-            const payload = { name: this.form.name.trim(), email: this.form.email.trim() };
+            const payload = { name: this.form.name.trim(), email: this.form.email.trim(), image: this.form.image || null };
             if (this.form.password) {
                 Object.assign(payload, {
                     current_password: this.form.current_password,
@@ -112,7 +124,8 @@ export default {
                 });
             }
             this.adminRequest('post', 'api/profile', payload)
-                .then(() => {
+                .then((u) => {
+                    this.imageUrl = (u && u.image_url) || '';
                     this.form.current_password = this.form.password = this.form.password_confirmation = '';
                     this.getConfigurations();
                 })

@@ -133,6 +133,17 @@ export function PhotoUploader({ photos, setPhotos, max = 6, error }) {
     <div className="space-y-5">
       {/* Drop zone */}
       <div
+        role="button"
+        tabIndex={full ? -1 : 0}
+        aria-disabled={full}
+        aria-label="Add photos"
+        onClick={() => !full && fileRef.current?.click()}
+        onKeyDown={(e) => {
+          if (!full && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            fileRef.current?.click();
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           if (!full) setDragging(true);
@@ -143,29 +154,46 @@ export function PhotoUploader({ photos, setPhotos, max = 6, error }) {
           setDragging(false);
           if (!full) addFiles(e.dataTransfer.files);
         }}
-        className={`rounded-2xl border-2 border-dashed p-6 text-center transition sm:p-8 ${
+        className={`rounded-2xl border-2 border-dashed p-6 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-8 ${
           dragging ? 'border-primary bg-primary/5' : error ? 'border-red-300 bg-red-50/40' : 'border-slate-300 bg-slate-50/60'
-        } ${full ? 'opacity-60' : ''}`}
+        } ${full ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-primary/60 hover:bg-primary/5'}`}
       >
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white text-primary-hover shadow-sm ring-1 ring-slate-200">
           <UploadCloud size={28} aria-hidden="true" />
         </span>
         <p className="mt-3 text-base font-bold text-navy">Add photos of your pet or item</p>
         <p className="mt-1 text-sm text-muted">
-          <span className="hidden sm:inline">Drag and drop here, or choose from your computer. </span>
+          <span className="hidden sm:inline">Click anywhere here or drag and drop photos. </span>
           JPG, PNG or WebP, up to 5 MB each. Large photos are resized automatically.
         </p>
         <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-          <Button onClick={() => fileRef.current?.click()} disabled={full} iconLeft={<ImagePlus size={18} />}>
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              fileRef.current?.click();
+            }}
+            disabled={full}
+            iconLeft={<ImagePlus size={18} />}
+          >
             <span className="sm:hidden">Choose from gallery</span>
             <span className="hidden sm:inline">Choose photos</span>
           </Button>
-          <Button variant="outline" className="sm:hidden" onClick={() => cameraRef.current?.click()} disabled={full} iconLeft={<Camera size={18} />}>
+          <Button
+            variant="outline"
+            className="sm:hidden"
+            onClick={(e) => {
+              e.stopPropagation();
+              cameraRef.current?.click();
+            }}
+            disabled={full}
+            iconLeft={<Camera size={18} />}
+          >
             Take a photo
           </Button>
         </div>
         <input
           ref={fileRef}
+          onClick={(e) => e.stopPropagation()}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           multiple
@@ -179,6 +207,7 @@ export function PhotoUploader({ photos, setPhotos, max = 6, error }) {
         />
         <input
           ref={cameraRef}
+          onClick={(e) => e.stopPropagation()}
           type="file"
           accept="image/*"
           capture="environment"

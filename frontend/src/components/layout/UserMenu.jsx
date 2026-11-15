@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { User, Heart, MessageSquare, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
+import { UserAvatar } from '../ui/UserAvatar';
 
 export function UserMenu({ transparent = false }) {
   const { user, logout } = useAuth();
@@ -32,15 +33,6 @@ export function UserMenu({ transparent = false }) {
 
   if (!user) return null;
 
-  const initials = user.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : 'U';
-
   const handleLogout = async () => {
     setIsOpen(false);
     await logout();
@@ -56,9 +48,7 @@ export function UserMenu({ transparent = false }) {
         aria-haspopup="true"
         aria-label="User account menu"
       >
-        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20">
-          {initials}
-        </div>
+        <UserAvatar user={user} className="h-9 w-9 text-sm" />
         <span className={`hidden xl:inline text-[15px] font-semibold max-w-[120px] truncate ${transparent ? 'text-white' : 'text-navy'}`}>
           {user.name.split(' ')[0]}
         </span>
@@ -105,6 +95,16 @@ export function UserMenu({ transparent = false }) {
             >
               <MessageSquare size={16} className="text-muted" />
               <span>Inquiries</span>
+            </Link>
+
+            <Link
+              to="/account/settings"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-4 py-2 text-sm text-navy hover:bg-slate-50 transition-colors"
+              role="menuitem"
+            >
+              <User size={16} className="text-muted" />
+              <span>Profile settings</span>
             </Link>
           </div>
 

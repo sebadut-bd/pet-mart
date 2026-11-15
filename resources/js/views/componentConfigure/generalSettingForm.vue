@@ -98,16 +98,25 @@
                                     <template v-if="item.type === 'image'">
                                         <div
                                             class="gs-image"
-                                            :class="{ 'is-empty': !item.image_url, 'is-drag': dragKey === item.key }"
+                                            :class="{ 'is-empty': !item.image_url, 'is-drag': dragKey === item.key, 'is-busy': uploading[item.key] }"
+                                            role="button"
+                                            tabindex="0"
+                                            :aria-label="item.image_url ? `Replace ${item.display_name}` : `Upload ${item.display_name}`"
+                                            @click="openPicker(item)"
+                                            @keydown.enter.prevent="openPicker(item)"
+                                            @keydown.space.prevent="openPicker(item)"
                                             @dragover.prevent="dragKey = item.key"
                                             @dragleave.prevent="dragKey = null"
                                             @drop.prevent="onDrop(item, $event)"
                                         >
                                             <img v-if="item.image_url" :src="item.image_url" :alt="item.display_name">
+                                            <div v-if="item.image_url && !uploading[item.key]" class="gs-image-hover">
+                                                <span><i class="fa-solid fa-camera"></i> Click or drop to replace</span>
+                                            </div>
                                             <div v-else class="gs-image-empty">
                                                 <i class="fa-regular fa-image"></i>
-                                                <strong>Drop an image here</strong>
-                                                <span>or use the button below. The website shows its default design until you add one.</span>
+                                                <strong>Click or drop an image here</strong>
+                                                <span>The website shows its default design until you add one.</span>
                                             </div>
                                             <div v-if="uploading[item.key]" class="gs-image-progress">
                                                 <div class="w-50">
@@ -370,6 +379,11 @@ export default {
                 .catch((err) => this.$toastr('error', this.errorMessage(err, 'Settings could not be saved.'), 'Error'))
                 .finally(() => { this.saving = false; });
         },
+        openPicker(item) {
+            if (this.uploading[item.key]) return;
+            const input = document.getElementById('set-' + item.key);
+            if (input) input.click();
+        },
         onPick(item, event) {
             const file = event.target.files && event.target.files[0];
             event.target.value = '';
@@ -519,6 +533,25 @@ export default {
 .gs-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gs-image.is-empty { background: #f8fafc; border: 1.5px dashed #cbd5e1; }
 .gs-image.is-drag { border-color: var(--pm-emerald); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); }
+.gs-image { cursor: pointer; }
+.gs-image.is-busy { cursor: progress; }
+.gs-image:hover, .gs-image:focus-visible { border-color: var(--pm-emerald); outline: none; }
+.gs-image:focus-visible { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2); }
+.gs-image.is-empty:hover { background: #f0fdf9; }
+.gs-image-hover {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(15, 23, 42, 0.45);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13.5px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.gs-image-hover span { padding: 8px 14px; border-radius: 999px; background: rgba(15, 23, 42, 0.55); }
+.gs-image:hover .gs-image-hover, .gs-image:focus-visible .gs-image-hover { opacity: 1; }
 .gs-image-empty {
     position: absolute;
     inset: 0;

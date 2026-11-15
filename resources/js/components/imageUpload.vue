@@ -1,28 +1,35 @@
 <template>
     <div>
         <div
-            class="pm-upload"
-            :class="{ 'is-drag': dragging }"
+            class="pm-upload is-clickable"
+            :class="{ 'is-drag': dragging, 'is-busy': uploading }"
+            role="button"
+            tabindex="0"
+            :aria-label="value ? 'Replace image' : 'Upload image'"
+            :aria-disabled="uploading ? 'true' : 'false'"
+            @click="pick"
+            @keydown.enter.prevent="pick"
+            @keydown.space.prevent="pick"
             @dragover.prevent="dragging = true"
             @dragleave.prevent="dragging = false"
             @drop.prevent="onDrop"
         >
-            <img v-if="previewUrl" :src="previewUrl" class="pm-upload-preview" alt="Preview">
-            <span v-else class="pm-upload-preview"><i class="fa-regular fa-image fa-lg"></i></span>
+            <img v-if="previewUrl" :src="previewUrl" class="pm-upload-preview" :class="{ 'is-avatar': avatar }" alt="Preview">
+            <span v-else class="pm-upload-preview" :class="{ 'is-avatar': avatar }"><i :class="avatar ? 'fa-regular fa-user fa-lg' : 'fa-regular fa-image fa-lg'"></i></span>
 
             <div class="min-w-0 flex-grow-1">
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-light btn-sm" :disabled="uploading" @click="$refs.file.click()">
+                    <span class="btn btn-light btn-sm" :class="{ disabled: uploading }" aria-hidden="true">
                         <i :class="uploading ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-arrow-up-from-bracket'"></i>
-                        {{ uploading ? 'Uploading…' : (value ? 'Replace' : 'Upload image') }}
-                    </button>
-                    <button v-if="value && !uploading" type="button" class="btn btn-sm btn-outline-danger" @click="$emit('input', '')">
+                        {{ uploading ? 'Uploading…' : (value ? 'Replace' : (avatar ? 'Upload photo' : 'Upload image')) }}
+                    </span>
+                    <button v-if="value && !uploading" type="button" class="btn btn-sm btn-outline-danger" @click.stop="$emit('input', '')" @keydown.stop>
                         <i class="fa-regular fa-trash-can"></i> Remove
                     </button>
                 </div>
-                <p class="form-text mb-0 mt-1">{{ hint }}</p>
+                <p class="form-text mb-0 mt-1">{{ hint }} Click or drop an image here.</p>
             </div>
-            <input ref="file" type="file" accept="image/jpeg,image/png,image/webp" class="d-none" @change="onPick">
+            <input ref="file" type="file" accept="image/jpeg,image/png,image/webp" class="d-none" tabindex="-1" @click.stop @change="onPick">
         </div>
         <span v-if="error" class="error_message">{{ error }}</span>
     </div>
@@ -35,6 +42,7 @@ export default {
         value: { type: String, default: '' },
         folder: { type: String, required: true },
         hint: { type: String, default: 'JPG, PNG or WebP, up to 5 MB, at least 200 × 200 px.' },
+        avatar: { type: Boolean, default: false },
     },
     data() {
         return { uploading: false, dragging: false, error: '', localPreview: '' };
@@ -52,6 +60,9 @@ export default {
         },
     },
     methods: {
+        pick() {
+            if (!this.uploading) this.$refs.file.click();
+        },
         onPick(e) {
             const file = e.target.files && e.target.files[0];
             e.target.value = '';

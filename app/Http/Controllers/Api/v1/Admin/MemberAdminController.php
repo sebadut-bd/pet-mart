@@ -8,6 +8,7 @@ use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class MemberAdminController extends AdminController
@@ -60,10 +61,19 @@ class MemberAdminController extends AdminController
             'email'       => ['nullable', 'email', 'max:150', Rule::unique('users', 'email')->ignore($member->id)],
             'is_verified' => ['required', 'boolean'],
             'status'      => ['required', 'boolean'],
+            'image'       => ['nullable', 'string', 'max:255', 'regex:#^avatars/[\w/.-]+$#'],
         ], [
             'phone.regex'  => 'Enter a valid Bangladesh mobile number, e.g. 01712345678.',
             'phone.unique' => 'Another account already uses this mobile number.',
+            'image.regex'  => 'Upload the photo again.',
         ]);
+
+        if (! empty($data['image']) && (str_contains($data['image'], '..') || ! Storage::disk('public')->exists($data['image']))) {
+            return response()->json(['message' => 'The photo was not found. Upload it again.', 'errors' => ['image' => ['The photo was not found. Upload it again.']]], 422);
+        }
+        if (! $request->has('image')) {
+            unset($data['image']);
+        }
 
         DB::transaction(function () use ($member, $data) {
             $member->update($data);
@@ -122,6 +132,7 @@ class MemberAdminController extends AdminController
             'phone'                 => $u->phone,
             'email'                 => $u->email,
             'image'                 => ImageStorage::url($u->image),
+            'image_path'            => $u->image,
             'location'              => $u->relationLoaded('location') ? $u->location?->name : null,
             'is_verified'           => (bool) $u->is_verified,
             'status'                => (bool) $u->status,

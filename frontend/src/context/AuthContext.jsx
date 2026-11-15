@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   }, [clearSession]);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, register, logout, fetchMe }),
+    () => ({ user, token, loading, login, register, logout, fetchMe, setUser }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, token, loading, logout, fetchMe],
   );

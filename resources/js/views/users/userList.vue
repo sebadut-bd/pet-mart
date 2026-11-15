@@ -39,7 +39,8 @@
                 <tr v-for="user in (dataList.data || [])" :key="user.id">
                     <td>
                         <div class="d-flex align-items-center gap-12">
-                            <span class="pm-avatar" :class="avatarTone(user.email)">{{ nameInitials(user.name) }}</span>
+                            <img v-if="user.image_url" :src="user.image_url" class="pm-avatar" alt="">
+                            <span v-else class="pm-avatar" :class="avatarTone(user.email)">{{ nameInitials(user.name) }}</span>
                             <div class="min-w-0">
                                 <span class="pm-cell-title">
                                     {{ user.name }}
@@ -69,6 +70,11 @@
 
         <form-modal modal-size="modal-lg" :title="editingId ? 'Edit user' : 'Add user'" :submit-text="editingId ? 'Save changes' : 'Create user'" @submit="save">
             <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Profile photo <span class="text-muted fw-normal">(optional)</span></label>
+                    <image-upload v-model="form.image" folder="avatars" avatar hint="Square photo works best. JPG, PNG or WebP, up to 5 MB."></image-upload>
+                    <span v-if="errors.image" class="error_message">{{ errors.image }}</span>
+                </div>
                 <div class="col-md-6">
                     <label class="form-label" for="u-name">Name <span class="req">*</span></label>
                     <input id="u-name" v-model="form.name" class="form-control" maxlength="100" autocomplete="off" placeholder="e.g. Nusrat Jahan" :class="{ 'is-invalid': errors.name }">
@@ -117,12 +123,13 @@
 import DataTable from "../../components/dataTable";
 import FormModal from "../../components/formModal";
 import StatCard from "../../components/statCard";
+import ImageUpload from "../../components/imageUpload";
 
-const EMPTY = () => ({ name: '', email: '', phone: '', role_id: null, password: '', password_confirmation: '', status: true });
+const EMPTY = () => ({ image: '', name: '', email: '', phone: '', role_id: null, password: '', password_confirmation: '', status: true });
 
 export default {
     name: "userList",
-    components: { DataTable, FormModal, StatCard },
+    components: { DataTable, FormModal, StatCard, ImageUpload },
     data() {
         return {
             tableHeading: ['User', 'Phone', 'Role', 'Added', 'Active', 'Actions'],
@@ -157,7 +164,7 @@ export default {
             this.editingId = user.id;
             this.editingIsMe = user.is_me;
             this.errors = {};
-            this.form = { ...EMPTY(), name: user.name, email: user.email, phone: (user.phone || '').replace(/^\+88/, ''), role_id: user.role_id, status: user.status };
+            this.form = { ...EMPTY(), image: user.image || '', name: user.name, email: user.email, phone: (user.phone || '').replace(/^\+88/, ''), role_id: user.role_id, status: user.status };
             this.openModal('formModal', 'Edit user', false, false);
         },
         validate() {
@@ -175,7 +182,7 @@ export default {
         },
         save() {
             if (!this.validate()) return;
-            const payload = { ...this.form };
+            const payload = { ...this.form, image: this.form.image || null };
             if (this.editingId && !payload.password) {
                 delete payload.password;
                 delete payload.password_confirmation;
