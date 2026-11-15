@@ -137,6 +137,7 @@ class InquiryController extends Controller
             'is_mine'           => $mine,
             'message'           => $inq->message,
             'is_read'           => (bool) $inq->is_read,
+            'edited_by_admin'   => $inq->admin_edited_at !== null,
             'created_at'        => $inq->created_at?->toIso8601String(),
         ];
     }

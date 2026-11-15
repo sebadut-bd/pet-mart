@@ -103,6 +103,9 @@ function Conversation({ convo, onReplied, onRead }) {
               >
                 {m.message}
               </p>
+              {m.edited_by_admin && (
+                <p className="mt-1 text-[11px] italic text-muted">Edited by PetMart moderator</p>
+              )}
             </div>
           </li>
         ))}

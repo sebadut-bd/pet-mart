@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\v1\Admin\BannerAdminController;
 use App\Http\Controllers\Api\v1\Admin\CategoryAdminController;
 use App\Http\Controllers\Api\v1\Admin\ContactMessageAdminController;
+use App\Http\Controllers\Api\v1\Admin\InquiryAdminController;
 use App\Http\Controllers\Api\v1\Admin\DashboardAdminController;
 use App\Http\Controllers\Api\v1\Admin\LocationAdminController;
 use App\Http\Controllers\Api\v1\Admin\ModerationController;
@@ -97,6 +98,16 @@ Route::middleware(['web', 'admin'])->group(function () {
         Route::put('/locations/{id}', [LocationAdminController::class, 'update'])->whereNumber('id');
         Route::delete('/locations/{id}', [LocationAdminController::class, 'destroy'])->whereNumber('id');
         Route::post('/locations/{id}/toggle-status', [LocationAdminController::class, 'toggleStatus'])->whereNumber('id');
+
+        Route::get('/inquiries/sellers', [InquiryAdminController::class, 'sellers']);
+        Route::get('/inquiries/sellers/{seller}/listings', [InquiryAdminController::class, 'listings'])->whereNumber('seller');
+        Route::get('/inquiries/listings/{product}/threads', [InquiryAdminController::class, 'threads'])->whereNumber('product');
+        Route::get('/inquiries/listings/{product}/threads/{buyer}', [InquiryAdminController::class, 'show'])->whereNumber(['product', 'buyer']);
+        Route::delete('/inquiries/listings/{product}/threads/{buyer}', [InquiryAdminController::class, 'destroyThread'])->whereNumber(['product', 'buyer']);
+        Route::post('/inquiries/listings/{product}/threads/{buyer}/restore', [InquiryAdminController::class, 'restoreThread'])->whereNumber(['product', 'buyer']);
+        Route::put('/inquiries/{id}', [InquiryAdminController::class, 'update'])->whereNumber('id');
+        Route::delete('/inquiries/{id}', [InquiryAdminController::class, 'destroy'])->whereNumber('id');
+        Route::post('/inquiries/{id}/restore', [InquiryAdminController::class, 'restore'])->whereNumber('id');
 
         Route::get('/contact-messages', [ContactMessageAdminController::class, 'index']);
         Route::put('/contact-messages/{id}', [ContactMessageAdminController::class, 'update'])->whereNumber('id');

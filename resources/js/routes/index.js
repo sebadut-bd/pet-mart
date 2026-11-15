@@ -14,6 +14,7 @@ import userList from "../views/users/userList";
 import bannerList from "../views/marketplace/bannerList";
 import reportList from "../views/marketplace/reportList";
 import contactMessageList from "../views/marketplace/contactMessageList";
+import inquiryList from "../views/marketplace/inquiryList";
 
 const routes = [
     {
@@ -27,6 +28,7 @@ const routes = [
             { path: "marketplace/moderation", name: "marketplace_moderation", component: moderationList, meta: { dataUrl: "api/v1/admin/moderation", pageTitle: "Listing moderation" } },
             { path: "marketplace/listings", name: "marketplace_listings", component: moderationList, meta: { dataUrl: "api/v1/admin/moderation", pageTitle: "All listings", mode: "all" } },
             { path: "marketplace/reports", name: "marketplace_reports", component: reportList, meta: { dataUrl: "api/v1/admin/reports", pageTitle: "Listing reports" } },
+            { path: "marketplace/inquiries", name: "marketplace_inquiries", component: inquiryList, meta: { pageTitle: "Inquiries" } },
             { path: "marketplace/messages", name: "marketplace_messages", component: contactMessageList, meta: { dataUrl: "api/v1/admin/contact-messages", pageTitle: "Contact messages" } },
             { path: "marketplace/members", name: "marketplace_members", component: memberList, meta: { dataUrl: "api/v1/admin/members", pageTitle: "Members" } },
             { path: "marketplace/users", redirect: "/admin/marketplace/members" },

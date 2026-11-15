@@ -35,6 +35,7 @@ class ModuleSeeder extends Seeder
                     ['display_name' => 'Listing moderation', 'name' => 'moderation', 'link' => '/admin/marketplace/moderation', 'icon' => 'fa-clipboard-check', 'permissions' => ['view', 'approve', 'reject', 'feature']],
                     ['display_name' => 'All listings', 'name' => 'listing', 'link' => '/admin/marketplace/listings', 'icon' => 'fa-list', 'permissions' => ['view', 'delete']],
                     ['display_name' => 'Reports', 'name' => 'report', 'link' => '/admin/marketplace/reports', 'icon' => 'fa-flag', 'permissions' => ['view', 'resolve', 'dismiss']],
+                    ['display_name' => 'Inquiries', 'name' => 'inquiry', 'link' => '/admin/marketplace/inquiries', 'icon' => 'fa-comments', 'permissions' => ['view', 'update', 'delete']],
                     ['display_name' => 'Contact messages', 'name' => 'contact_message', 'link' => '/admin/marketplace/messages', 'icon' => 'fa-envelope-open-text', 'permissions' => ['view', 'update', 'delete']],
                     ['display_name' => 'Members', 'name' => 'user', 'link' => '/admin/marketplace/members', 'icon' => 'fa-users', 'permissions' => ['view', 'verify', 'update', 'delete']],
                     ['display_name' => 'Categories', 'name' => 'category', 'link' => '/admin/marketplace/categories', 'icon' => 'fa-layer-group', 'permissions' => ['view', 'add', 'update', 'delete']],

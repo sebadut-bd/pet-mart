@@ -13,6 +13,11 @@ class Inquiry extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_read'         => 'boolean',
+        'admin_edited_at' => 'datetime',
+    ];
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
